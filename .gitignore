@@ -1,0 +1,30 @@
+# ---- Audio and derived data: never committed ----
+data/raw/**
+data/processed/**
+data/noise/**
+
+# ---- Fingerprint cache and indexes: rebuildable, and large ----
+db/fingerprints/**
+db/*.mat
+
+# ---- Raw evaluation output: rebuildable from the manifest + seed ----
+results/raw/**
+
+# ---- Exceptions: these DO get committed ----
+!db/catalog.csv
+!data/README.md
+!results/figures/.gitkeep
+!results/tables/.gitkeep
+
+# ---- MATLAB noise ----
+*.asv
+*.autosave
+*.m~
+slprj/
+codegen/
+*.mex*
+
+# ---- OS noise ----
+.DS_Store
+Thumbs.db
+desktop.ini

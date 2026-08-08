@@ -1,0 +1,12 @@
+* text=auto
+
+*.m    text diff=matlab
+*.md   text
+*.csv  text
+
+# App Designer files are binary containers. Git cannot merge them - see
+# src/gui/README.md and risk R7. One owner per .mlapp file.
+*.mlapp binary
+*.mat   binary
+*.fig   binary
+*.wav   binary
