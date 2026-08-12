@@ -7,32 +7,54 @@ DSIGPRO Term Project · Group 4 · De La Salle University
 
 ---
 
-## Status: skeleton (Milestone M0)
+## Status: M2 complete — 100 songs enrolled, both index backends benchmarked
 
-The repository structure, configuration layer and test harness are in place.
-Every function under `src/` is a **stub with a frozen interface contract** —
-the signature and documented behaviour are settled, the body is written at the
-milestone named in each file's header.
+Audio in, song identified out, on the real 100-song database.
 
-**Implemented and working**
+```
+preprocess → STFT → peak picking → density cap → combinatorial hashing
+          → index (csr | containers.Map) → lookup → offset alignment → scoring
+```
+
+**Measured at M2** (100 songs, `baselineConfig`, R2025a):
 
 | | |
 |---|---|
-| `setupPaths.m` | Path setup, working-folder creation |
-| `config/*.m` | The full `Cfg` struct, both system configurations, tag generation, query-side resolution |
-| `tests/runTests.m` | Test runner with the pending/failed distinction |
+| clean 10 s top-1 accuracy | **100.0%** (100/100) |
+| enrolment | 13.9 s (budget: 15 min) |
+| median match time | **13 ms**, p95 15 ms (budget: 1 s) |
+| index | 1.44 M postings, 548 k keys, 12.4 MB |
+| peak density | 12.1/s achieved |
 
-**Stubbed** — 51 functions across `src/`, 1 controller class, 8 pipeline
-scripts. Each raises `HimigTransform:NotImplemented` with its milestone.
+**Still stubbed** — everything from M4 onward: `pickPeaksAdaptive`,
+`spectralSubtract`, `estimateNoiseSpectrum`, all of `src/eval/`, the plots,
+`AppController`, and `s04`–`s08`. Each raises
+`HimigTransform:NotImplemented` naming its milestone.
+
+### Two things to settle before M3 freezes the baseline
+
+1. **The density cap is inert.** `Cfg.peaks.densityPerSec = 25` sits above the
+   18.2/s geometric ceiling of the 21×21 neighbourhood, so it never binds and
+   density is whatever the neighbourhood yields. This matters at M4, where
+   both peak pickers run through `enforcePeakDensity` specifically so fixed
+   and adaptive are compared at equal peak budget. Run
+   `peakBudgetAudit(baselineConfig(), true)` for the full analysis, and see
+   `docs/designNotes.md` for the three options.
+
+2. **The SNR grid** is currently the proposal's `[Inf 10 5 0]`. The extended
+   `[Inf 20 15 10 5 0]` is strictly additive and locates the knee of the
+   accuracy curve.
+
+Both change the baseline, so they are cheap now and expensive after
+`git tag v0.1-baseline-frozen`.
 
 ---
 
 ## Setup
 
-**MATLAB R2021b or newer.** Pin one version for the whole group and record it
-here once agreed:
+**MATLAB R2025a.** Agreed for the whole group.
 
-> Agreed version: `_______________` (fill this in)
+> Agreed version: **R2025a** — do not mix releases.
 
 Required: Signal Processing Toolbox (`resample`).
 Optional, with fallbacks: Audio Toolbox, Image Processing Toolbox,
@@ -72,9 +94,9 @@ s08_makeTables      % M7
 
 | | Milestone | Exit criterion |
 |---|---|---|
-| **M0** | Skeleton and data spine | `runTests` runs; `catalog.csv` built; every processed file verified 8 kHz mono |
-| **M1** | Vertical slice — **freeze the interfaces here** | `tSTFT`, `tHashPack`, `tSelfMatch` green on the 5-song toy set, margin > 3 |
-| **M2** | Baseline at full scale | 100 songs enrolled; ≥95% top-1 on clean 10 s; enrolment < 15 min; median match < 1 s |
+| ~~**M0**~~ | ~~Skeleton and data spine~~ | Done |
+| ~~**M1**~~ | ~~Vertical slice~~ | Done — interfaces frozen |
+| ~~**M2**~~ | ~~Baseline at full scale~~ | **Done** — 100 songs, 100% clean top-1, 13.9 s enrolment, 13 ms median match, both backends benchmarked |
 | **M3** | Evaluation harness | Full baseline grid runs unattended; then `git tag v0.1-baseline-frozen` |
 | **M4** | Enhancement 1 | ≥10 pp gain at 0 dB on **dev**; ≤2 pp regression on clean |
 | **M5** | Enhancement 2 + open-set | Gain at 3 s; ROC over holdout; `tau`/`rho` frozen in config |
