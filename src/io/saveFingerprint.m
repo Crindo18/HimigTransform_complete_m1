@@ -1,17 +1,52 @@
-function saveFingerprint(fp, songID, Cfg)
+function outFile = saveFingerprint(fp, songID, Cfg)
 %SAVEFINGERPRINT Write one song's fingerprint cache to db/fingerprints/<tag>/song_%04d.mat.
 %
-%   Per-song files make re-enrolment incremental after a code change rather
-%   than all-or-nothing.
+%   OUTFILE = SAVEFINGERPRINT(FP, SONGID, CFG) writes FP (as returned by
+%   EXTRACTFINGERPRINT) and returns the path written.
 %
-%   Milestone: M1.  Blueprint: section(s) 2.3.
+%   PER SONG, NOT ONE BIG FILE. Re-enrolment after a code change then costs
+%   only the songs whose fingerprints actually changed, instead of the whole
+%   catalogue every time. It also makes the cache safe to write from a parfor
+%   loop: each worker owns its own file, so there is no shared handle and no
+%   ordering dependency.
 %
-%   STATUS: stub. The contract above is frozen (blueprint section 5); the body
-%   is written at the milestone named above.
+%   THE PROVENANCE FIELDS ARE THE POINT. Alongside the fingerprint the file
+%   records cfgTag, the song's sha256 and the MATLAB release. LOADFINGERPRINT
+%   refuses a cache whose cfgTag or checksum disagrees with what is being
+%   asked for, which is what stops the single worst failure mode here: a stale
+%   fingerprint from an older config silently mixed into a fresh index. That
+%   index would build without complaint, query without error, and return
+%   quietly wrong accuracy numbers.
 %
-%   See also LOADFINGERPRINT, EXTRACTFINGERPRINT.
+%   Milestone: M1.  Blueprint: section 2.3.
+%
+%   See also LOADFINGERPRINT, EXTRACTFINGERPRINT, ENROLLDATABASE.
 
-error('HimigTransform:NotImplemented', ...
-    'saveFingerprint is a stub (Milestone M1). See docs/designNotes.md.');
+if nargin < 3 || isempty(Cfg)
+    Cfg = defaultConfig();
+end
+
+cacheDir = fingerprintCacheDir(Cfg);
+
+if ~isfolder(cacheDir)
+    mkdir(cacheDir);
+end
+
+outFile = fullfile(cacheDir, sprintf('song_%04d.mat', double(songID)));
+
+payload             = struct();
+payload.fp          = fp;
+payload.songID      = uint16(songID);
+payload.cfgTag      = Cfg.tag;
+payload.matlabVer   = version('-release');
+payload.savedOn     = datetime('now');
+
+if isfield(fp, 'meta') && isfield(fp.meta, 'sha256')
+    payload.sha256 = fp.meta.sha256;
+else
+    payload.sha256 = '';
+end
+
+save(outFile, '-struct', 'payload', '-v7');
 
 end

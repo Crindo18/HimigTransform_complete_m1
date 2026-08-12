@@ -33,7 +33,8 @@ end
 import matlab.unittest.TestSuite
 import matlab.unittest.TestRunner
 
-suite = TestSuite.empty(1, 0);
+
+suiteParts = cell(1, numel(names));
 for k = 1:numel(names)
     [~, base] = fileparts(names{k});
     if strcmp(base, 'runTests')
@@ -45,12 +46,14 @@ for k = 1:numel(names)
         continue
     end
     try
-        suite = [suite, TestSuite.fromFile(thisFile)]; %#ok<AGROW>
+        suiteParts{k} = TestSuite.fromFile(thisFile);
     catch err
         warning('HimigTransform:BadTestFile', ...
             'Could not load %s: %s', base, err.message);
     end
 end
+
+suite = [suiteParts{:}];
 
 if isempty(suite)
     error('HimigTransform:NoTests', 'No test files found in %s.', testDir);

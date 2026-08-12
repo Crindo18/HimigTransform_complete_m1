@@ -1,0 +1,121 @@
+songID,sourcePath,action,fsIn,nChannelsIn,rmsDbfsIn,gainDb,peakAfter,clipGuard,durationSec,elapsedSec,message
+1,"american/4 Non Blondes - What_s Up (Official Music Video) [6NXnxTNIWkc].wav",processed,48000,2,-15.9316967771147,-4.06830322288534,0.629635921382025,0,292.59475,0.5632576,48000 Hz/2ch -> 8 kHz mono
+2,"american/Ariana Grande - Into You (Official Video) [1ekZEVeXwek].wav",processed,48000,2,-11.5436674312229,-8.45633256877711,0.405833550537322,0,254.8275,0.3283632,48000 Hz/2ch -> 8 kHz mono
+3,"american/Ariana Grande - One Last Time (Official Lyric Video) [Wg92RrNhB8s].wav",processed,48000,2,-10.2271674221751,-9.77283257782493,0.342675865804089,0,198.890625,0.2433368,48000 Hz/2ch -> 8 kHz mono
+4,"american/Ava Max - Kings & Queens [Official Music Video] [jH1RNk8954Q].wav",processed,48000,2,-10.0222745252858,-9.97772547471422,0.343554543164755,0,162.388875,0.1806133,48000 Hz/2ch -> 8 kHz mono
+5,"american/Ava Max - Sweet but Psycho [Official Music Video] [WXBHCQYxwr0].wav",processed,48000,2,-10.5769155575011,-9.42308444249891,0.362252248227935,0,207.1685,0.2780186,48000 Hz/2ch -> 8 kHz mono
+6,"american/Backstreet Boys - I Want It That Way (Official HD Video) [4fndeDfaWCg].wav",processed,48000,2,-16.5821705938714,-3.41782940612858,0.624357240494422,0,219.266125,0.251488,48000 Hz/2ch -> 8 kHz mono
+7,"american/Bebe Rexha - Meant to Be (feat. Florida Georgia Line) [Official Music Video] [zDo0H8Fm7d0].wav",processed,48000,2,-12.9152989803225,-7.08470101967752,0.422932096762973,0,177.934625,0.1748219,48000 Hz/2ch -> 8 kHz mono
+8,"american/Bill Withers - Ain_t No Sunshine (Official Audio) [YuKfiH0Scao].wav",processed,48000,2,-19.484489648983,-0.515510351016984,0.848142471279416,0,126.4,0.1268143,48000 Hz/2ch -> 8 kHz mono
+9,"american/Billie Eilish, Khalid - lovely [V1Pl8CzNzCw].wav",processed,48000,2,-16.6497966945999,-3.35020330540011,0.363300543315631,0,200.469375,0.2089068,48000 Hz/2ch -> 8 kHz mono
+10,"american/Blackstreet - No Diggity (Official Music Video) ft. Dr. Dre, Queen Pen [3KL9mRus19o].wav",processed,48000,2,-15.0528864860613,-4.94711351393867,0.612310989697019,0,270.47775,0.2792667,48000 Hz/2ch -> 8 kHz mono
+11,"american/Bruno Mars - When I Was Your Man (Official Music Video) [ekzHIouo8Q4].wav",processed,48000,2,-15.7238330925851,-4.2761669074149,0.560964765316782,0,234.068875,0.267236,48000 Hz/2ch -> 8 kHz mono
+12,"american/Charlie Puth - We Don_t Talk Anymore (feat. Selena Gomez) [Official Video] [3AtDnEC4zak].wav",processed,48000,2,-12.1079642369168,-7.89203576308316,0.42847695319951,0,230.4465,0.2493669,48000 Hz/2ch -> 8 kHz mono
+13,"american/Destiny_s Child - Say My Name (Official Video) [sQgd6MccwZc].wav",processed,48000,2,-19.6643299813728,-0.33567001862718,0.699750191415089,0,239.44425,0.3023977,48000 Hz/2ch -> 8 kHz mono
+14,"american/Djo - End Of Beginning (Official Audio) [xy3AcmW0lrQ].wav",processed,48000,2,-12.5799804397232,-7.42001956027678,0.451247647510872,0,159.3005,0.2441415,48000 Hz/2ch -> 8 kHz mono
+15,"american/Doja Cat - Kiss Me More (Official Video) ft. SZA [0EVVKs6DQLo].wav",processed,48000,2,-13.4257794858408,-6.57422051415917,0.47707458293774,0,315.524375,0.4551275,48000 Hz/2ch -> 8 kHz mono
+16,"american/Goo Goo Dolls - Iris [Official Music Video] [4K Remaster] [NdYWuo9OFAw].wav",processed,48000,2,-16.7560181480747,-3.24398185192526,0.598810193032031,0,215.550875,0.2732435,48000 Hz/2ch -> 8 kHz mono
+17,"american/H.E.R. - Best Part (Lyrics) Ft. Daniel Caesar [75-Com9Bo_s].wav",processed,48000,2,-14.5344669711439,-5.46553302885612,0.539756646508287,0,209.455625,0.2697453,48000 Hz/2ch -> 8 kHz mono
+18,"american/Hailee Steinfeld - Love Myself (Official Video) [bMpFmHSgC4Q].wav",processed,48000,2,-12.5823561415638,-7.41764385843621,0.430904383690316,0,240.106,0.323406,48000 Hz/2ch -> 8 kHz mono
+19,"american/Imagine Dragons - Next To Me (Audio) [-C_rvt0SwLE].wav",processed,48000,2,-9.37995802727729,-10.6200419727227,0.333656886244561,0,229.7035,0.2730787,48000 Hz/2ch -> 8 kHz mono
+20,"american/Imagine Dragons - Thunder [fKopy74weus].wav",processed,48000,2,-9.67096328824713,-10.3290367117529,0.33045672507518,0,203.97575,0.2983645,48000 Hz/2ch -> 8 kHz mono
+21,"american/Jason Mraz - I_m Yours (Official Video) [7gO-jFLIgdk].wav",processed,48000,2,-18.4082515452736,-1.59174845472642,0.502852170002249,0,220.97275,0.3293323,48000 Hz/2ch -> 8 kHz mono
+22,"american/Jeremy Zucker - comethru (Official Video) [jO2viLEW-1A].wav",processed,48000,2,-15.7000454077398,-4.29995459226018,0.615698147131336,0,180.65075,0.2514567,48000 Hz/2ch -> 8 kHz mono
+23,"american/Justin Timberlake - CAN_T STOP THE FEELING! (from DreamWorks Animation_s ＂TROLLS＂) (Official Video) [ru0K8uYEZWw].wav",processed,48000,2,-13.6116189126873,-6.38838108731274,0.419728577170203,0,285.83775,0.3640778,48000 Hz/2ch -> 8 kHz mono
+24,"american/Katy Perry - Firework (Official Music Video) [QGJuMBdaqIw].wav",processed,48000,2,-12.6302135969699,-7.36978640303006,0.462254858345098,0,233.2445,0.2994475,48000 Hz/2ch -> 8 kHz mono
+25,"american/Kelly Clarkson - Since U Been Gone (Official Video) [R7UrFYvl5TE].wav",processed,48000,2,-24.7832381603946,4.78323816039461,0.514032079052927,0,191.820125,0.2160588,48000 Hz/2ch -> 8 kHz mono
+26,"american/Khalid - Young Dumb & Broke (Official Video) [IPfJnp1guPc].wav",processed,48000,2,-11.7144649906565,-8.28553500934351,0.380741856813836,0,247.04875,0.2797676,48000 Hz/2ch -> 8 kHz mono
+27,"american/Lauryn Hill - Nothing Even Matters feat. D_Angelo [5aDIqM0n0Eg].wav",processed,48000,2,-15.5172344932381,-4.48276550676194,0.595738093889473,0,350.540125,0.4308031,48000 Hz/2ch -> 8 kHz mono
+28,"american/Linkin Park - In The End [Official HD Music Video] [eVTXPUF4Oz4].wav",processed,48000,2,-11.9646432777556,-8.03535672224439,0.416471972320739,0,218.22125,0.2662632,48000 Hz/2ch -> 8 kHz mono
+29,"american/Lizzo - Good As Hell (Video) [SmbmeOgWsqE].wav",processed,48000,2,-10.3531956741747,-9.64680432582528,0.373461943989091,0,165.906625,0.1937859,48000 Hz/2ch -> 8 kHz mono
+30,"american/Maroon 5 - Girls Like You ft. Cardi B (Official Music Video) [aJOTlE1K90k].wav",processed,48000,2,-12.611587297069,-7.38841270293102,0.456136440121012,0,270.784,0.3009367,48000 Hz/2ch -> 8 kHz mono
+31,"american/Marshmello - Alone (Official Music Video) [ALZHF5UqnU4].wav",processed,48000,2,-8.55135867842801,-11.448641321572,0.345491720782019,0,199.4595,0.2208584,48000 Hz/2ch -> 8 kHz mono
+32,"american/Meghan Trainor - All About That Bass (Official Video) [7PCkvCPvDXk].wav",processed,48000,2,-12.0462786011457,-7.95372139885433,0.375700110332677,0,189.9045,0.2093524,48000 Hz/2ch -> 8 kHz mono
+33,"american/Olivia Rodrigo - drivers license (Official Video) [ZmDBbnmKpqQ].wav",processed,48000,2,-12.935733674276,-7.06426632572404,0.458004405166428,0,247.014,0.2826731,48000 Hz/2ch -> 8 kHz mono
+34,"american/Pitbull, Ke$ha - Timber (featuring Ke$ha - Official Video) [hHUbLv4ThOo].wav",processed,48000,2,-10.7893149328102,-9.21068506718981,0.364168745728324,0,214.03,0.260231,48000 Hz/2ch -> 8 kHz mono
+35,"american/Post Malone, Swae Lee - Sunflower (Spider-Man： Into the Spider-Verse) [ApXoWvfEYVU].wav",processed,48000,2,-11.2988373989664,-8.70116260103361,0.386812240018365,0,161.669,0.179853,48000 Hz/2ch -> 8 kHz mono
+36,"american/Prince - Adore (2020 Remaster) [uIgQ-tI3pbU].wav",processed,48000,2,-18.4522065040112,-1.54779349598879,0.792917324236483,0,394.8645,0.5130513,48000 Hz/2ch -> 8 kHz mono
+37,"american/Sade - Kiss Of Life - Official - 1993 [MmOau-PMWJk].wav",processed,48000,2,-19.2791988589427,-0.720801141057266,0.76302405523692,0,251.4025,0.3078213,48000 Hz/2ch -> 8 kHz mono
+38,"american/Selena Gomez - Back To You [VY1eFxgRR-k].wav",processed,48000,2,-11.5958774510983,-8.40412254890173,0.401550948412242,0,267.37075,0.3279642,48000 Hz/2ch -> 8 kHz mono
+39,"american/Selena Gomez - Lose You To Love Me (Official Music Video) [zlJDTxahav0].wav",processed,48000,2,-13.7183234255435,-6.28167657445646,0.494275672942778,0,206.92475,0.2190136,48000 Hz/2ch -> 8 kHz mono
+40,"american/Solange - Cranes in the Sky (Official Video) [S0qrinhNnOM].wav",processed,48000,2,-12.4081624156092,-7.59183758439079,0.422115166833438,0,272.23075,0.3010724,48000 Hz/2ch -> 8 kHz mono
+41,"american/Steve Wonder - Superstition [ftdZ363R9kQ].wav",processed,48000,2,-19.5644653371646,-0.435534662835403,0.776374671925408,0,266.133375,0.3061732,48000 Hz/2ch -> 8 kHz mono
+42,"american/Taylor Swift - Shake It Off [nfWlot6h_JM].wav",processed,48000,2,-11.7876909821043,-8.21230901789575,0.405459339543358,0,241.592125,0.2725011,48000 Hz/2ch -> 8 kHz mono
+43,"american/Taylor Swift - cardigan [K-a8s8OLBSE].wav",processed,48000,2,-18.5714080252823,-1.42859197471767,0.436796337090174,0,274.529625,0.3276169,48000 Hz/2ch -> 8 kHz mono
+44,"american/The Chainsmokers - Closer (Official Video) ft. Halsey [0zGcUoRlhmw].wav",processed,48000,2,-14.0245545850651,-5.97544541493492,0.460295633692703,0,246.921,0.282952,48000 Hz/2ch -> 8 kHz mono
+45,"american/The Chainsmokers - Don_t Let Me Down (Official Video) ft. Daya [Io0fBr1XBUA].wav",processed,48000,2,-11.6712235593398,-8.32877644066024,0.383637222089534,0,217.849625,0.2316663,48000 Hz/2ch -> 8 kHz mono
+46,"american/Train - Hey, Soul Sister (Official Video) [kVpv8-5XWOI].wav",processed,48000,2,-13.2168554402881,-6.78314455971192,0.401119035517133,0,217.43175,0.2476814,48000 Hz/2ch -> 8 kHz mono
+47,"american/Wiz Khalifa - See You Again ft. Charlie Puth [Official Video] Furious 7 Soundtrack [RgKAFK5djSk].wav",processed,48000,2,-11.7789574161121,-8.22104258388786,0.41473232631018,0,237.366,0.2795708,48000 Hz/2ch -> 8 kHz mono
+48,"american/benny blanco, Halsey & Khalid - Eastside (official video) [56WBK4ZK_cw].wav",processed,48000,2,-11.7259605413743,-8.27403945862565,0.40148022570986,0,174.010375,0.2119966,48000 Hz/2ch -> 8 kHz mono
+49,"american/twenty one pilots - Heathens (from Suicide Squad： The Album) [OFFICIAL VIDEO] [UprcpdwuwCg].wav",processed,48000,2,-12.3931591694658,-7.60684083053418,0.445744820268555,0,217.89875,0.2436074,48000 Hz/2ch -> 8 kHz mono
+50,"american/twenty one pilots - Ride (Official Video) [Pw-0pbY9JeU].wav",processed,48000,2,-13.1759189252133,-6.82408107478666,0.452119687324645,0,225.2685,0.2596171,48000 Hz/2ch -> 8 kHz mono
+51,"holdout/american/Ariana Grande - no tears left to cry (Official Video) [ffxKSjUwKdU].wav",processed,48000,2,-11.567459374835,-8.43254062516502,0.392636943996989,0,238.1555,0.2889271,48000 Hz/2ch -> 8 kHz mono
+52,"holdout/american/D_Angelo - Untitled (How Does It Feel) (Official Music Video) [SxVNOnPyvIU].wav",processed,48000,2,-12.0922404819724,-7.90775951802759,0.445939486425226,0,263.104,0.3297099,48000 Hz/2ch -> 8 kHz mono
+53,"holdout/american/OneRepublic - Counting Stars [hT_nvWreIhg].wav",processed,48000,2,-17.1169061151723,-2.88309388482768,0.413786598690927,0,283.03975,0.3499268,48000 Hz/2ch -> 8 kHz mono
+54,"holdout/american/P!nk - Just Give Me A Reason ft. Nate Ruess [OpQFFLBMEPI].wav",processed,48000,2,-14.646182899205,-5.35381710079495,0.545066177397602,0,242.496,0.2825438,48000 Hz/2ch -> 8 kHz mono
+55,"holdout/american/Panic! At The Disco - High Hopes (Official Video) [IPXIgEAGe4U].wav",processed,48000,2,-11.1811587722685,-8.81884122773148,0.393736391787247,0,196.498875,0.2098912,48000 Hz/2ch -> 8 kHz mono
+56,"holdout/american/Post Malone - Circles [wXhTHyIgQ_U].wav",processed,48000,2,-8.77433448623006,-11.2256655137699,0.305643004071454,0,226.313375,0.2485723,48000 Hz/2ch -> 8 kHz mono
+57,"holdout/american/Rachel Platten - Fight Song (Official Video) [xo1VInw-SKc].wav",processed,48000,2,-12.6247793991647,-7.37522060083533,0.420870567514352,0,205.09025,0.2420265,48000 Hz/2ch -> 8 kHz mono
+58,"holdout/american/Sabrina Carpenter - Espresso [eVli-tstM5E].wav",processed,48000,2,-10.9267602016826,-9.07323979831739,0.369451107220424,0,200.53925,0.2365332,48000 Hz/2ch -> 8 kHz mono
+59,"holdout/american/Taylor Swift - Blank Space [e-ORhEE9VVg].wav",processed,48000,2,-13.9482762367994,-6.05172376320063,0.434356009578091,0,272.428125,0.3207588,48000 Hz/2ch -> 8 kHz mono
+60,"holdout/american/twenty one pilots - Stressed Out [OFFICIAL VIDEO] [pXRviuL6vMY].wav",processed,48000,2,-11.3591893004474,-8.64081069955256,0.382533112246838,0,225.233625,0.2933603,48000 Hz/2ch -> 8 kHz mono
+61,"holdout/opm/018 - Amiel Sol - Sa Bawat Sandali (Lyrics).wav",processed,48000,2,-12.1402942862523,-7.85970571374768,0.418593077500353,0,304.63425,0.3419768,48000 Hz/2ch -> 8 kHz mono
+62,"holdout/opm/023 - Over October - Ikot (Official Lyric Video).wav",processed,48000,2,-12.0749693908458,-7.92503060915425,0.418375948731193,0,254.049625,0.2949546,48000 Hz/2ch -> 8 kHz mono
+63,"holdout/opm/028 - Darin feat. Eloise - Falling In love (Music Video).wav",processed,48000,2,-17.3275135550666,-2.6724864449334,0.429696675040449,0,120.801875,0.1470279,48000 Hz/2ch -> 8 kHz mono
+64,"holdout/opm/030 - Rob Deniel - Miss Miss.wav",processed,48000,2,-15.1692367612793,-4.8307632387207,0.420174074078548,0,266.3445,0.2974022,48000 Hz/2ch -> 8 kHz mono
+65,"holdout/opm/036 - SUGARCANE - Leonora (Official Lyric Video).wav",processed,48000,2,-13.290817912156,-6.70918208784399,0.494209723945627,0,234.4055,0.2660163,48000 Hz/2ch -> 8 kHz mono
+66,"holdout/opm/053 - O SIDE MAFIA - MY THANG (Go Getta II) (Lyrics).wav",processed,48000,2,-10.1607183193072,-9.83928168069284,0.345526837232079,0,198.21725,0.226956,48000 Hz/2ch -> 8 kHz mono
+67,"holdout/opm/068 - TJ Monterde - DARATING DIN｜ OFFICIAL LYRIC VIDEO.wav",processed,48000,2,-19.1564532613676,-0.843546738632401,0.832989130559498,0,240.791,0.2904485,48000 Hz/2ch -> 8 kHz mono
+68,"holdout/opm/069 - Rob Deniel - Arrowmance -  (Official Lyric Video).wav",processed,48000,2,-13.7701750253046,-6.22982497469537,0.425830202674781,0,317.376,0.3962386,48000 Hz/2ch -> 8 kHz mono
+69,"holdout/opm/080 - Maki - Kailan (Official Lyric Video).wav",processed,48000,2,-14.8277039997737,-5.17229600022629,0.504469098678833,0,253.6665,0.3040065,48000 Hz/2ch -> 8 kHz mono
+70,"holdout/opm/089 - IV Of Spades - Mundo [Lyrics].wav",processed,48000,2,-15.4082979367438,-4.59170206325621,0.569337851234373,0,349.808625,0.431045,48000 Hz/2ch -> 8 kHz mono
+71,"opm/003 - Skusta Clee - Since Day One (Lyrics) Ft. Flow G.wav",processed,48000,2,-14.0398775739352,-5.96012242606476,0.393468951951871,0,195.047625,0.2317593,48000 Hz/2ch -> 8 kHz mono
+72,"opm/007 - Soapdish - Tensionado  (Official Lyric Visuals).wav",processed,48000,2,-13.6552400794267,-6.34475992057327,0.47756937491851,0,210.872125,0.2563957,48000 Hz/2ch -> 8 kHz mono
+73,"opm/008 - Le John - Naiilang (Official Lyric Video).wav",processed,48000,2,-12.7362375293621,-7.26376247063787,0.443187777123758,0,247.106875,0.265931,48000 Hz/2ch -> 8 kHz mono
+74,"opm/009 - IV Of Spades - Mundo (Lyrics).wav",processed,48000,2,-14.9070906815297,-5.09290931847034,0.559624091304382,0,349.8435,0.4195231,48000 Hz/2ch -> 8 kHz mono
+75,"opm/014 - Cean Jr. - YK (Lyrics).wav",processed,48000,2,-10.7918662968121,-9.20813370318792,0.365529969657632,0,170.469375,0.1858141,48000 Hz/2ch -> 8 kHz mono
+76,"opm/015 - Because - BMW (Ft. leslie) Lyrics.wav",processed,48000,2,-12.3467786308409,-7.65322136915906,0.40559570774233,0,166.76575,0.195792,48000 Hz/2ch -> 8 kHz mono
+77,"opm/017 - HELLMERRY - My Day (Lyrics).wav",processed,48000,2,-12.8775549293591,-7.12244507064088,0.445765775663171,0,185.144375,0.1915876,48000 Hz/2ch -> 8 kHz mono
+78,"opm/019 - jasondhakal - Para Sa Akin (Lyrics).wav",processed,48000,2,-10.6408919882044,-9.35910801179562,0.374992400246884,0,195.512125,0.2028591,48000 Hz/2ch -> 8 kHz mono
+79,"opm/020 - Dionela - Marilag (Lyrics).wav",processed,48000,2,-13.5832330608605,-6.41676693913953,0.490516380982819,0,157.83775,0.1752739,48000 Hz/2ch -> 8 kHz mono
+80,"opm/022 - Dionela - sining (Lyrics) ft. Jay R.wav",processed,48000,2,-16.0186338836695,-3.98136611633054,0.607064818033025,0,200.04,0.2118699,48000 Hz/2ch -> 8 kHz mono
+81,"opm/026 - BINI - Blink Twice_ Official Lyric Video.wav",processed,48000,2,-12.1061138083977,-7.89388619160225,0.415022695219583,0,157.62875,0.1702172,48000 Hz/2ch -> 8 kHz mono
+82,"opm/031 - BINI - Cherry On Top Official Lyric Video.wav",processed,48000,2,-9.67427337829011,-10.3257266217099,0.321270379738612,0,176.05375,0.1971693,48000 Hz/2ch -> 8 kHz mono
+83,"opm/032 - Ryouji ft. CK YG - b4 i let u go (Official Lyric Video).wav",processed,48000,2,-12.9032661519221,-7.09673384807787,0.488594684880456,0,195.26825,0.2356208,48000 Hz/2ch -> 8 kHz mono
+84,"opm/033 - Rob Deniel - RomCom (Lyrics).wav",processed,48000,2,-16.0506113282928,-3.94938867170722,0.36745501233116,0,237.43575,0.2783775,48000 Hz/2ch -> 8 kHz mono
+85,"opm/037 - Ben & Ben - Sa Susunod Na Habang Buhay (Lyrics).wav",processed,48000,2,-14.203140213015,-5.79685978698503,0.54248108283881,0,288.287375,0.3532686,48000 Hz/2ch -> 8 kHz mono
+86,"opm/039 - ZACK TABUDLO FT. AL JAMES - GUSTO.wav",processed,48000,2,-11.3408846153061,-8.65911538469388,0.374298579671521,0,258.07825,0.3157462,48000 Hz/2ch -> 8 kHz mono
+87,"opm/042 - Maki - Namumula (Lyrics).wav",processed,48000,2,-9.20087067731849,-10.7991293226815,0.316472614428798,0,175.484875,0.1979058,48000 Hz/2ch -> 8 kHz mono
+88,"opm/045 - Illest Morena - Faded (Raw)  Lyrics ｜ (kaya ibalot mo na _yang raw).wav",processed,48000,2,-13.4131714350129,-6.58682856498711,0.484483220445518,0,172.396625,0.1891687,48000 Hz/2ch -> 8 kHz mono
+89,"opm/046 - TJ Monterde - Palagi (Lyric Video) ｜ @dhorynmarimon.wav",processed,48000,2,-16.2398918371676,-3.76010816283238,0.627964541116511,0,220.578,0.2413595,48000 Hz/2ch -> 8 kHz mono
+90,"opm/047 - Hev Abi - Makasarili Malambing (Lyrics) Kristina Dawn ＂ maintindihan mo sanang _di pa _ko handa＂.wav",processed,48000,2,-13.3140087540074,-6.6859912459926,0.475794956499703,0,125.608375,0.1411276,48000 Hz/2ch -> 8 kHz mono
+91,"opm/048 - Jed Baruelo - Nahuhulog (Lyrics).wav",processed,48000,2,-16.5475235274504,-3.45247647254959,0.666661249228001,0,227.2305,0.2607827,48000 Hz/2ch -> 8 kHz mono
+92,"opm/050 - Dionela - Oksihina (Official Lyric Video).wav",processed,48000,2,-17.9347783109718,-2.06522168902823,0.645804747029468,0,204.045375,0.2535702,48000 Hz/2ch -> 8 kHz mono
+93,"opm/051 - SUGARCANE - Paalam, Leonora (Official Lyric Visualizer).wav",processed,48000,2,-14.3417461435591,-5.65825385644085,0.524394930309778,0,263.2215,0.3196876,48000 Hz/2ch -> 8 kHz mono
+94,"opm/054 - O Side Mafia - Get Low (Lyrics).wav",processed,48000,2,-10.2229919678425,-9.77700803215747,0.357249283828255,0,154.67975,0.1910513,48000 Hz/2ch -> 8 kHz mono
+95,"opm/060 - Hev Abi - Para Sa Streets (Official Lyric Video) (Prod. Noane).wav",processed,48000,2,-13.5305404654768,-6.46945953452315,0.48587257366654,0,194.571625,0.2239848,48000 Hz/2ch -> 8 kHz mono
+96,"opm/062 - Shanti Dope - Bad Type (Official Lyric Video).wav",processed,48000,2,-9.83779205145018,-10.1622079485498,0.370947300956023,0,186.595625,0.2274863,48000 Hz/2ch -> 8 kHz mono
+97,"opm/063 - MATEO - Lalim (Official Lyric Video with Chords).wav",processed,48000,2,-14.6115508253468,-5.38844917465317,0.528255663099049,0,199.900625,0.2364822,48000 Hz/2ch -> 8 kHz mono
+98,"opm/065 - Jan Roberts - Hirap Kalimutan (Official Lyric Video).wav",processed,48000,2,-15.0032190987083,-4.99678090129169,0.537737953246965,0,185.81775,0.2256853,48000 Hz/2ch -> 8 kHz mono
+99,"opm/066 - Cup of Joe - Misteryoso  (Official Lyric Video).wav",processed,48000,2,-11.7698949253739,-8.23010507462613,0.416049052779366,0,237.377625,0.2838461,48000 Hz/2ch -> 8 kHz mono
+100,"opm/067 - juan karlos - Through the Years (From ＂Lolo and the Kid＂) Official Audio.wav",processed,48000,2,-14.688098759977,-5.31190124002296,0.543064809427519,0,241.417875,0.3039987,48000 Hz/2ch -> 8 kHz mono
+101,"opm/071 - James Reid - Sandal (Official Lyric Video).wav",processed,48000,2,-11.9224665937629,-8.07753340623709,0.404112599201897,0,226.46425,0.2837073,48000 Hz/2ch -> 8 kHz mono
+102,"opm/072 - Dilaw - Yiee (Official Music Video and Lyric Visualizer).wav",processed,48000,2,-12.0008215381445,-7.99917846185546,0.446145702683753,0,233.8715,0.2987522,48000 Hz/2ch -> 8 kHz mono
+103,"opm/074 - Moonstar88 - Migraine (Lyrics).wav",processed,48000,2,-11.3155978905885,-8.68440210941149,0.378230949532973,0,279.684375,0.3532553,48000 Hz/2ch -> 8 kHz mono
+104,"opm/076 - BINI - Karera (Lyrics).wav",processed,48000,2,-11.4288143447716,-8.5711856552284,0.443866748253001,0,287.497875,0.3361239,48000 Hz/2ch -> 8 kHz mono
+105,"opm/077 - December Avenue - Huling Sandali (Lyric Video).wav",processed,48000,2,-12.6554754915125,-7.34452450848754,0.422887847556762,0,341.646875,0.502892,48000 Hz/2ch -> 8 kHz mono
+106,"opm/078 - Hev Abi - Sumugal feat. Unotheone, LK.wav",processed,48000,2,-11.8799023465423,-8.1200976534577,0.4109265986788,0,182.1025,0.2150972,48000 Hz/2ch -> 8 kHz mono
+107,"opm/082 - Nateman - IMMA FLIRT ft. Lucky (Official Lyric Video).wav",processed,48000,2,-13.9456739068509,-6.05432609314914,0.49823541492925,0,198.867375,0.2365384,48000 Hz/2ch -> 8 kHz mono
+108,"opm/083 - Parokya ni Edgar - Gitara (Lyrics).wav",processed,48000,2,-13.8089351989508,-6.19106480104922,0.481795962733507,0,243.809625,0.2597312,48000 Hz/2ch -> 8 kHz mono
+109,"opm/084 - Hev Abi - Alam Mo Ba Girl (Lyrics).wav",processed,48000,2,-12.1338787269159,-7.86612127308409,0.429152904628187,0,222.017625,0.2368268,48000 Hz/2ch -> 8 kHz mono
+110,"opm/085 - YB Neet - ILY ft. Bugoy Na Koykoy (Lyric Video).wav",processed,48000,2,-13.3306261344484,-6.66937386555159,0.470678184018093,0,179.049125,0.2082655,48000 Hz/2ch -> 8 kHz mono
+111,"opm/086 - Al James - Pa-Umaga (Lyrics).wav",processed,48000,2,-10.4581624622076,-9.54183753779244,0.334730948739575,0,189.09175,0.2201662,48000 Hz/2ch -> 8 kHz mono
+112,"opm/087 - BINI - ‘First Luv’ Official Music Video.wav",processed,48000,2,-10.6678956313876,-9.33210436861244,0.378833528435385,0,211.719625,0.2671161,48000 Hz/2ch -> 8 kHz mono
+113,"opm/091 - Up Dharma Down - Oo (Lyrics).wav",processed,48000,2,-16.9449628783009,-3.05503712169912,0.529385449039937,0,247.373875,0.3017344,48000 Hz/2ch -> 8 kHz mono
+114,"opm/092 - rhodessa - Kisame (Lyrics).wav",processed,48000,2,-12.65044404076,-7.34955595924004,0.460528410857374,0,244.053375,0.3221512,48000 Hz/2ch -> 8 kHz mono
+115,"opm/093 - Hale - Kung Wala Ka (Lyrics).wav",processed,48000,2,-7.59357201533282,-12.4064279846672,0.279166683876092,0,239.676375,0.2757734,48000 Hz/2ch -> 8 kHz mono
+116,"opm/095 - Ben&Ben - Lifetime (Reimagined).wav",processed,48000,2,-13.0203866296123,-6.97961337038774,0.460191517323168,0,277.861625,0.3187185,48000 Hz/2ch -> 8 kHz mono
+117,"opm/096 - SB19 - DAM_ Music Video.wav",processed,48000,2,-10.2514626255789,-9.74853737442115,0.417886651740545,0,301.511125,0.3676702,48000 Hz/2ch -> 8 kHz mono
+118,"opm/097 - Maki - Kahel na Langit (Official Music Video).wav",processed,48000,2,-11.866024031359,-8.13397596864097,0.405124097833251,0,237.633125,0.2860315,48000 Hz/2ch -> 8 kHz mono
+119,"opm/098 - BINI - Sweet Tooth’ Official Music Video.wav",processed,48000,2,-17.5870916483156,-2.41290835168436,0.446957113712517,0,187.234125,0.2038698,48000 Hz/2ch -> 8 kHz mono
+120,"opm/100 - Skusta Clee - Kalimutan Ka (Lyrics).wav",processed,48000,2,-11.5382871239644,-8.46171287603559,0.423551994594022,0,321.074,0.3571922,48000 Hz/2ch -> 8 kHz mono

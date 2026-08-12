@@ -1,0 +1,6 @@
+songID,title,artist,repertoire,role,split,year,sourcePath,procPath,durationSec,sha256
+1,Copper Lantern,Toy Ensemble,american,db,test,0,american/02. Toy Ensemble - Copper Lantern.wav,mono8k/song_0001.wav,45,58f4ed89df3667bdc2d217bcac0061d5ff8c1d3f525035222a22f2ac34968f76
+2,Blue Meridian,Toy Ensemble,american,db,test,1998,american/Toy Ensemble - Blue Meridian (1998).wav,mono8k/song_0002.wav,38,c65b0f10cbfa8659cd04c6ff4420e1dc5c8b6930677def20119cfe6908fea2d4
+3,Ninth Harbour,Toy Ensemble,american,holdout,dev,2011,holdout/american/Toy Ensemble - Ninth Harbour (2011).wav,mono8k/song_0003.wav,33,8110aced535983f553f2d4f151876cb9aa9fb92874b4d344b9bda5e68399445c
+4,Paalam Na Sinta,unknown,opm,db,test,0,opm/Paalam Na Sinta.wav,mono8k/song_0004.wav,35,6bc39d580fde4bdf5875c16ba219f3094467a325b40de2ca33cc0d1a77f2eb77
+5,Hanging Sa Umaga,Toy Kundiman,opm,db,test,2004,opm/Toy Kundiman - Hanging Sa Umaga (2004).wav,mono8k/song_0005.wav,41,8c19a469ca2bccf773e6df4bdf73901e5c3c71cdfa6d6f06699e35641de0fe38
