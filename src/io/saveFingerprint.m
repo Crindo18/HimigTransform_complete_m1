@@ -41,6 +41,24 @@ payload.cfgTag      = Cfg.tag;
 payload.matlabVer   = version('-release');
 payload.savedOn     = datetime('now');
 
+% The tag is a hash, so on a mismatch it can say only that two opaque strings
+% differ. Storing the extraction config next to it lets LOADFINGERPRINT name
+% the field that actually moved - the difference between "tag base_...a1b2
+% is not base_...c3d4" and "peaks.nbhdF (21 -> 17)".
+payload.extCfg        = struct();
+payload.extCfg.audio  = Cfg.audio;
+payload.extCfg.pre    = Cfg.pre;
+payload.extCfg.stft   = Cfg.stft;
+payload.extCfg.peaks  = Cfg.peaks;
+payload.extCfg.hash   = struct();
+enrolHashFields = {'fanout', 'dtMin', 'dtMax', 'dfMaxBins', 'freqDecim'};
+for k = 1:numel(enrolHashFields)
+    f = enrolHashFields{k};
+    if isfield(Cfg.hash, f)
+        payload.extCfg.hash.(f) = Cfg.hash.(f);
+    end
+end
+
 if isfield(fp, 'meta') && isfield(fp.meta, 'sha256')
     payload.sha256 = fp.meta.sha256;
 else

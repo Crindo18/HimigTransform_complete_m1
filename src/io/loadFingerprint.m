@@ -49,17 +49,35 @@ end
 
 S = load(f);
 
-if ~isfield(S, 'cfgTag') || ~strcmp(S.cfgTag, Cfg.tag)
+% The stale-cache branch must never itself throw. Reading S.cfgTag inside the
+% error() call was fine when the field existed and raised "Reference to
+% non-existent field 'cfgTag'" when it did not - replacing the one clear
+% sentence this function exists to produce with MATLAB's least helpful
+% message, in exactly the case (a cache written by an older version) where the
+% clear sentence matters most.
+if isfield(S, 'cfgTag')
+    cachedTag = char(S.cfgTag);
+else
+    cachedTag = '<none recorded>';
+end
+
+if ~isfield(S, 'cfgTag') || ~strcmp(cachedTag, Cfg.tag)
     if wantOk
         return
     end
     error('HimigTransform:StaleFingerprint', ...
         ['Cached fingerprint for songID %d was built under config tag "%s" but "%s" ' ...
-         'was requested. Delete the cache directory and re-enrol.'], ...
-        double(songID), S.cfgTag, Cfg.tag);
+         'was requested.%s\nDelete %s and re-enrol.'], ...
+        double(songID), cachedTag, Cfg.tag, tagDiffHint(S, Cfg), fileparts(f));
 end
 
-if ~isempty(expectedSha) && ~isempty(S.sha256) && ~strcmp(S.sha256, expectedSha)
+if isfield(S, 'sha256')
+    cachedSha = char(S.sha256);
+else
+    cachedSha = '';
+end
+
+if ~isempty(expectedSha) && ~isempty(cachedSha) && ~strcmp(cachedSha, expectedSha)
     if wantOk
         return
     end
@@ -71,4 +89,80 @@ end
 fp = S.fp;
 ok = true;
 
+end
+
+% =======================================================================
+function hint = tagDiffHint(S, Cfg)
+%TAGDIFFHINT Name the fields that differ, when the cache recorded its config.
+%
+%   The tag is a hash, so "tag A is not tag B" is true and useless. SAVEFINGERPRINT
+%   stores the extraction config alongside the fingerprint precisely so this
+%   function can say WHICH field moved. Older caches predate that field, in
+%   which case there is nothing to diff and the message stays as it was.
+
+hint = '';
+
+if ~isfield(S, 'extCfg') || ~isstruct(S.extCfg)
+    return
+end
+
+try
+    changed = diffStruct(S.extCfg, currentExtCfg(Cfg), '');
+catch
+    return
+end
+
+if isempty(changed)
+    return
+end
+
+hint = sprintf('\nChanged since the cache was written: %s.', strjoin(changed, ', '));
+
+end
+
+% =======================================================================
+function e = currentExtCfg(Cfg)
+e       = struct();
+e.audio = Cfg.audio;
+e.pre   = Cfg.pre;
+e.stft  = Cfg.stft;
+e.peaks = Cfg.peaks;
+f = {'fanout', 'dtMin', 'dtMax', 'dfMaxBins', 'freqDecim'};
+e.hash = struct();
+for k = 1:numel(f)
+    if isfield(Cfg.hash, f{k})
+        e.hash.(f{k}) = Cfg.hash.(f{k});
+    end
+end
+end
+
+% =======================================================================
+function changed = diffStruct(a, b, prefix)
+changed = {};
+names   = union(fieldnames(a), fieldnames(b));
+for k = 1:numel(names)
+    nm   = names{k};
+    path = nm;
+    if ~isempty(prefix)
+        path = [prefix '.' nm]; %#ok<AGROW>
+    end
+
+    if ~isfield(a, nm) || ~isfield(b, nm)
+        changed{end+1} = path; %#ok<AGROW>
+        continue
+    end
+
+    va = a.(nm);
+    vb = b.(nm);
+
+    if isstruct(va) && isstruct(vb)
+        changed = [changed, diffStruct(va, vb, path)]; %#ok<AGROW>
+    elseif ~isequal(va, vb)
+        if isnumeric(va) && isnumeric(vb) && isscalar(va) && isscalar(vb)
+            changed{end+1} = sprintf('%s (%g -> %g)', path, va, vb); %#ok<AGROW>
+        else
+            changed{end+1} = path; %#ok<AGROW>
+        end
+    end
+end
 end

@@ -23,6 +23,10 @@ Cfg.peaks.mode        = 'fixed';   % global magnitude floor, not local median
 Cfg.denoise.enable    = false;     % no spectral subtraction on the query
 Cfg.shortQuery.enable = false;     % one fan-out for every query length
 
+% --- Freeze peak neighbourhood at 17x17 so density cap binds ---
+Cfg.peaks.nbhdF       = 17;
+Cfg.peaks.nbhdT       = 17;
+
 % --- Baseline hashing ------------------------------------------------
 Cfg.hash.fanout      = 8;
 Cfg.hash.dtMin       = 1;

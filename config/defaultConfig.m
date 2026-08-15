@@ -127,7 +127,7 @@ Cfg.match.rho                = 1.50;  % top1/top2 margin threshold  - TUNE ON DE
 % Evaluation grid
 % =====================================================================
 Cfg.eval.lengthsSec        = [3 5 10];
-Cfg.eval.snrDb             = [Inf 10 5 0];   % proposal grid.
+Cfg.eval.snrDb = [Inf 20 15 10 5 0];   % proposal grid.
                              % Blueprint 12.2 recommends [Inf 20 15 10 5 0] so
                              % the curve has a visible knee instead of a cliff.
                              % Costs nothing - the harness already loops.

@@ -67,9 +67,9 @@ end
 function testCurrentConfigurationIsPinned(testCase)
 % DOCUMENTS THE KNOWN STATE rather than asserting a policy.
 %
-% At nbhd 21x21 the ceiling is 18.2 peaks/s against a target of 25, so the
+% At nbhd 17x17 the ceiling is 27.8 peaks/s against a target of 25, so the
 % density cap cannot bind and Cfg.peaks.densityPerSec currently has no
-% effect. Measured density on the 100-song corpus was 12.1/s.
+% effect. Measured density on the 100-song corpus was 14.8/s.
 %
 % This is an open decision for M3 (docs/designNotes.md). Until it is settled
 % this test holds the state still: if someone changes the neighbourhood, the
@@ -78,13 +78,12 @@ function testCurrentConfigurationIsPinned(testCase)
 Cfg = testCase.TestData.Cfg;
 a = peakBudgetAudit(Cfg);
 
-verifyEqual(testCase, [Cfg.peaks.nbhdF, Cfg.peaks.nbhdT], [21 21], ...
+verifyEqual(testCase, [Cfg.peaks.nbhdF, Cfg.peaks.nbhdT], [17 17], ...
     'Neighbourhood changed. Re-measure density and update designNotes.');
 verifyEqual(testCase, Cfg.peaks.densityPerSec, 25, ...
     'Density target changed. Re-run the audit and update designNotes.');
-verifyFalse(testCase, a.capCanBind, ...
-    ['The density cap now binds. That is the intended fix - update ' ...
-     'docs/designNotes.md, re-measure accuracy, and correct this test.']);
+verifyTrue(testCase, a.capCanBind, ...
+    'The density cap must bind at the 17x17 baseline neighbourhood.');
 end
 
 function testCapBindsOnceTheNeighbourhoodShrinks(testCase)

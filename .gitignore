@@ -1,30 +1,53 @@
-# ---- Audio and derived data: never committed ----
+# ---- Audio: never committed --------------------------------
+# Licensing as much as size. data/raw is other people's music, and
+# data/demoQueries holds DEMAND noise MIXED INTO it. DEMAND is CC BY-SA,
+# so redistributing a derivative triggers ShareAlike - blueprint 1.4 is
+# explicit that mixed audio must not ship publicly.
 data/raw/**
 data/processed/**
 data/noise/**
+data/demoQueries/**
 
-# ---- Fingerprint cache and indexes: rebuildable, and large ----
-db/fingerprints/**
-db/*.mat
+# ---- db/: default-deny -------------------------------------
+db/**
+!db/catalog.csv
+!db/catalogToy.csv
+!db/noiseBank.csv
 
-# ---- Raw evaluation output: rebuildable from the manifest + seed ----
+# ---- results/ ----------------------------------------------
+# Raw per-query output: ~17,000 rows per system, and reproducible from
+# the manifest plus Cfg.seed, which is the whole point of D2.
 results/raw/**
 
-# ---- Exceptions: these DO get committed ----
-!db/catalog.csv
-!data/README.md
-!results/figures/.gitkeep
-!results/tables/.gitkeep
+# queryManifest.mat is a typed cache of queryManifest.csv. The CSV is the
+# committed artifact - diffable, and readable without MATLAB.
+results/*.mat
 
-# ---- MATLAB noise ----
+# Timestamped run output. s06 and s07 stamp the run into these filenames,
+# so committing the glob accumulates one near-identical file per run.
+# Final tables for the paper get deliberate names from s08 and are
+# committed by naming them explicitly.
+results/tables/metrics_*.csv
+results/tables/metricsByRepertoire_*.csv
+
+# .fig is binary MATLAB: unmergeable, and regenerable by s07 from the
+# results file. The .png alongside it is what goes in the paper.
+results/figures/*.fig
+
+
+!**/.gitkeep
+
+# ---- MATLAB ------------------------------------------------
 *.asv
 *.autosave
 *.m~
+*.mex*
 slprj/
 codegen/
-*.mex*
 
-# ---- OS noise ----
+# ---- Editors / OS ------------------------------------------
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
 desktop.ini

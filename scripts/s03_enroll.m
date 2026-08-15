@@ -199,8 +199,21 @@ if runBackendComparison
     IdxMap = buildIndexMap(fpCells, enrolledIDs, CfgMap);
     mapBuildSec = toc(tMap);
 
-    mapWhos = whos('IdxMap');
-    csrWhos = whos('Idx');
+    % MEMORY IS ESTIMATED, NOT MEASURED BY WHOS. containers.Map is a HANDLE
+    % class, so whos reports the size of the handle and never recurses into
+    % the stored value arrays. On the real database that produced ~2 MB for a
+    % map holding 610,999 posting arrays - which is roughly the size of the
+    % key array alone, and it made the printed table say the proposal's
+    % backend used a FIFTH of the CSR memory. That is the exact opposite of
+    % blueprint D3's finding, printed directly underneath the buildIndexMap
+    % log line reporting the honest number.
+    %
+    % buildIndexMap computes that number: postings plus MATLAB's per-array
+    % header on every value array, which is the whole cost being reported.
+    % Label it estimated so nobody mistakes it for a measurement.
+    csrWhos   = whos('Idx');
+    csrBytes  = csrWhos.bytes;
+    mapBytes  = IdxMap.stats.bytes;
 
     fprintf('  %-22s %14s %14s\n', '', 'csr', 'containers.Map');
     fprintf('  %-22s %14d %14d\n', 'postings', ...
@@ -209,10 +222,11 @@ if runBackendComparison
         Idx.stats.nDistinct, IdxMap.stats.nDistinct);
     fprintf('  %-22s %13.2fs %13.2fs\n', 'build time', ...
         Idx.stats.buildSec, mapBuildSec);
-    fprintf('  %-22s %13.1fM %13.1fM\n', 'in-memory (whos)', ...
-        csrWhos.bytes / 2^20, mapWhos.bytes / 2^20);
+    fprintf('  %-22s %13.1fM %12.1fM*\n', 'in-memory', ...
+        csrBytes / 2^20, mapBytes / 2^20);
     fprintf('  %-22s %13.1fx\n', 'map / csr memory', ...
-        mapWhos.bytes / max(csrWhos.bytes, 1));
+        mapBytes / max(csrBytes, 1));
+    fprintf('  %-22s %s\n', '', '* estimated - whos cannot size a handle class');
 
     % Same query through both, to confirm parity on the real database rather
     % than only on the five toy songs the unit test uses.
