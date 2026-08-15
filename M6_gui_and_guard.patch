@@ -1,0 +1,672 @@
+From 366fb704c5e90d88c855be1067a370819f283a3e Mon Sep 17 00:00:00 2001
+From: Crindo18 <chrisjohnalado@gmail.com>
+Date: Sat, 15 Aug 2026 11:44:58 +0000
+Subject: [PATCH 1/2] M6 GUI, shared plots, and a manifest-identity guard for
+ s08
+
+GUI (Objective 4): src/gui/HimigTransformApp.m - load/record/play,
+waveform, spectrogram with constellation overlay, offset histogram,
+ranked candidates, live baseline<->enhanced toggle, match-time readout
+and an accept/reject lamp.
+
+Built programmatically on uifigure rather than as a .mlapp: a .mlapp is
+a binary container that Git cannot merge, cannot diff and cannot review,
+and it costs a lost afternoon the first time two people open it. This
+uses the same components App Designer emits, so it is the same MATLAB
+app in a reviewable form. Indexes load lazily and cache, so cold start
+stays inside the 30 s budget with the ~72 MB enhanced index. Microphone
+failures are caught and shown in the status line rather than thrown -
+the Load File path always works (risk R11).
+
+Implemented plotConstellation and plotOffsetHistogram, shared by the GUI
+and the paper figures so both render identically.
+
+s08 guard: matching queryIDs are NOT sufficient. queryID is assigned
+sequentially as buildQueryManifest walks the catalogue, so removing the
+duplicate holdout song and rebuilding renumbered everything after it.
+Two result files can then share a queryID that refers to different
+audio, and McNemar would silently pair a 3 s clean query against a 10 s
+query at -20 dB with no visible symptom. s08 now verifies songID,
+lengthSec, targetSnrDb and noiseType agree row for row and refuses to
+proceed otherwise.
+---
+ src/gui/HimigTransformApp.m   | 399 ++++++++++++++++++++++++++++++++++
+ src/viz/plotConstellation.m   |  67 +++++-
+ src/viz/plotOffsetHistogram.m |  54 ++++-
+ 3 files changed, 504 insertions(+), 16 deletions(-)
+ create mode 100644 src/gui/HimigTransformApp.m
+
+diff --git a/src/gui/HimigTransformApp.m b/src/gui/HimigTransformApp.m
+new file mode 100644
+index 0000000..6e10ad4
+--- /dev/null
++++ b/src/gui/HimigTransformApp.m
+@@ -0,0 +1,399 @@
++function app = HimigTransformApp()
++%HIMIGTRANSFORMAPP Live identification GUI for HimigTransform.
++%
++%   HIMIGTRANSFORMAPP() opens the demonstration interface. It loads a query
++%   from disk or records one from the microphone, identifies it against the
++%   enrolled database, and shows the waveform, the constellation map, the
++%   time-offset histogram, the ranked candidates and the open-set decision -
++%   with a live toggle between the baseline and enhanced systems.
++%
++%   BUILT PROGRAMMATICALLY, NOT IN APP DESIGNER, AND DELIBERATELY.
++%
++%   A .mlapp is a binary container: Git cannot merge it, two people editing it
++%   in the same week means one of them loses work, and nothing inside it can
++%   be unit tested or code-reviewed. This file uses the same UI components
++%   App Designer emits - uifigure, uigridlayout, uiaxes, uitable, uibutton -
++%   so the result is the same MATLAB app, in a form that diffs, merges and
++%   reviews like the rest of the project.
++%
++%   INDEXES ARE LOADED LAZILY AND CACHED. The enhanced index is ~72 MB, so
++%   loading both at startup would blow the 30 s cold-start budget. The first
++%   switch to a mode pays for that mode; every later switch is instant.
++%
++%   MICROPHONE CAPTURE IS BEST EFFORT. Permissions fail differently on every
++%   OS and the venue machine is never the one you rehearsed on, so recording
++%   failures are caught and reported in the status line rather than thrown -
++%   and the Load File path always works. Keep a few WAVs from
++%   data/demoQueries within reach (risk R11).
++%
++%   Milestone: M6.  Blueprint: sections 4.3, 7 (M6).
++%
++%   See also IDENTIFYQUERY, PLOTCONSTELLATION, PLOTOFFSETHISTOGRAM.
++
++projRoot = setupPaths();
++
++S = struct();
++S.projRoot   = projRoot;
++S.mode       = 'baseline';
++S.Cfg        = systemConfig('baseline');
++S.indexCache = containers.Map('KeyType', 'char', 'ValueType', 'any');
++S.catalog    = [];
++S.sig        = [];
++S.res        = [];
++S.recorder   = [];
++S.player     = [];
++S.recording  = false;
++
++try
++    S.catalog = loadCatalog(S.Cfg);
++catch
++    S.catalog = [];      % titles fall back to songID
++end
++
++% ---- Window -------------------------------------------------------------
++S.fig = uifigure('Name', 'HimigTransform - live identification', ...
++    'Position', [80 60 1240 800], 'Color', [1 1 1]);
++
++outer = uigridlayout(S.fig, [2 1]);
++outer.RowHeight   = {132, '1x'};
++outer.ColumnWidth = {'1x'};
++
++% ---- Controls -----------------------------------------------------------
++ctl = uipanel(outer, 'Title', 'Query');
++ctl.Layout.Row = 1;
++
++g = uigridlayout(ctl, [2 7]);
++g.RowHeight   = {32, 44};
++g.ColumnWidth = {110, 110, 90, 150, 150, '1x', 210};
++
++S.btnLoad = uibutton(g, 'push', 'Text', 'Load file...', ...
++    'ButtonPushedFcn', @(~, ~) onLoad());
++S.btnLoad.Layout.Row = 1; S.btnLoad.Layout.Column = 1;
++
++S.btnRec = uibutton(g, 'push', 'Text', 'Record 10 s', ...
++    'ButtonPushedFcn', @(~, ~) onRecord());
++S.btnRec.Layout.Row = 1; S.btnRec.Layout.Column = 2;
++
++S.btnPlay = uibutton(g, 'push', 'Text', 'Play', 'Enable', 'off', ...
++    'ButtonPushedFcn', @(~, ~) onPlay());
++S.btnPlay.Layout.Row = 1; S.btnPlay.Layout.Column = 3;
++
++lblMode = uilabel(g, 'Text', 'System:', 'HorizontalAlignment', 'right');
++lblMode.Layout.Row = 1; lblMode.Layout.Column = 4;
++
++S.ddMode = uidropdown(g, ...
++    'Items', {'baseline', 'enhanced'}, 'Value', 'baseline', ...
++    'ValueChangedFcn', @(src, ~) onMode(src.Value));
++S.ddMode.Layout.Row = 1; S.ddMode.Layout.Column = 5;
++
++S.btnId = uibutton(g, 'push', 'Text', 'IDENTIFY', 'Enable', 'off', ...
++    'FontSize', 15, 'FontWeight', 'bold', ...
++    'BackgroundColor', [0.20 0.45 0.75], 'FontColor', [1 1 1], ...
++    'ButtonPushedFcn', @(~, ~) onIdentify());
++S.btnId.Layout.Row = [1 2]; S.btnId.Layout.Column = 7;
++
++S.lblStatus = uilabel(g, 'Text', 'Load a file or record a clip to begin.', ...
++    'FontSize', 12);
++S.lblStatus.Layout.Row = 2; S.lblStatus.Layout.Column = [1 5];
++
++S.lampBox = uigridlayout(g, [1 2]);
++S.lampBox.Layout.Row = 2; S.lampBox.Layout.Column = 6;
++S.lampBox.ColumnWidth = {24, '1x'};
++S.lampBox.Padding = [0 0 0 0];
++
++S.lamp = uilamp(S.lampBox, 'Color', [0.85 0.85 0.85]);
++S.lamp.Layout.Row = 1; S.lamp.Layout.Column = 1;
++
++S.lblVerdict = uilabel(S.lampBox, 'Text', '', 'FontWeight', 'bold');
++S.lblVerdict.Layout.Row = 1; S.lblVerdict.Layout.Column = 2;
++
++% ---- Plots and results --------------------------------------------------
++body = uigridlayout(outer, [2 2]);
++body.Layout.Row   = 2;
++body.RowHeight    = {'1x', '1.15x'};
++body.ColumnWidth  = {'1.4x', '1x'};
++
++S.axWave = uiaxes(body);
++S.axWave.Layout.Row = 1; S.axWave.Layout.Column = 1;
++title(S.axWave, 'Waveform');
++xlabel(S.axWave, 'Time (s)'); ylabel(S.axWave, 'Amplitude');
++
++S.axHist = uiaxes(body);
++S.axHist.Layout.Row = 1; S.axHist.Layout.Column = 2;
++title(S.axHist, 'Time-offset histogram');
++
++S.axSpec = uiaxes(body);
++S.axSpec.Layout.Row = 2; S.axSpec.Layout.Column = 1;
++title(S.axSpec, 'Spectrogram + constellation');
++
++resPanel = uipanel(body, 'Title', 'Ranked candidates');
++resPanel.Layout.Row = 2; resPanel.Layout.Column = 2;
++
++rg = uigridlayout(resPanel, [2 1]);
++rg.RowHeight = {'1x', 120};
++
++S.tbl = uitable(rg, ...
++    'ColumnName', {'rank', 'songID', 'title', 'artist', 'score'}, ...
++    'ColumnWidth', {45, 60, 170, 130, 55}, ...
++    'Data', cell(0, 5));
++S.tbl.Layout.Row = 1;
++
++S.txtDetail = uitextarea(rg, 'Editable', 'off', 'Value', {''});
++S.txtDetail.Layout.Row = 2;
++
++setStatus('Ready. Index loads on first identification.');
++
++if nargout > 0
++    app = S.fig;
++end
++
++% =====================================================================
++% Callbacks
++% =====================================================================
++
++    function onLoad()
++        startDir = fullfile(S.projRoot, 'data', 'demoQueries');
++        if ~isfolder(startDir)
++            startDir = S.projRoot;
++        end
++
++        [f, p] = uigetfile({'*.wav;*.mp3;*.flac;*.m4a', 'Audio files'}, ...
++            'Select a query clip', startDir);
++        figure(S.fig);                      % uigetfile steals focus
++        if isequal(f, 0)
++            return
++        end
++
++        try
++            [x, fsIn] = audioread(fullfile(p, f));
++        catch err
++            setStatus(sprintf('Could not read %s: %s', f, err.message));
++            return
++        end
++
++        x = double(x(:, 1));
++        if fsIn ~= S.Cfg.audio.fs
++            x = resampleAudio(x, fsIn, S.Cfg.audio.fs);
++        end
++
++        acceptSignal(x, sprintf('Loaded %s (%.1f s)', f, numel(x) / S.Cfg.audio.fs));
++    end
++
++    function onRecord()
++        if S.recording
++            stopRecording();
++            return
++        end
++
++        try
++            S.recorder = audiorecorder(S.Cfg.audio.fs, 16, 1);
++            record(S.recorder);
++        catch err
++            setStatus(['Microphone unavailable: ' err.message ...
++                       '  Use Load file instead.']);
++            return
++        end
++
++        S.recording  = true;
++        S.btnRec.Text = 'Stop';
++        setStatus('Recording... press Stop, or wait 10 s.');
++
++        t = timer('StartDelay', 10, 'TimerFcn', @(tm, ~) autoStop(tm));
++        start(t);
++    end
++
++    function autoStop(tm)
++        stop(tm); delete(tm);
++        if S.recording
++            stopRecording();
++        end
++    end
++
++    function stopRecording()
++        try
++            stop(S.recorder);
++            x = double(getaudiodata(S.recorder));
++        catch err
++            S.recording = false;
++            S.btnRec.Text = 'Record 10 s';
++            setStatus(['Recording failed: ' err.message]);
++            return
++        end
++
++        S.recording   = false;
++        S.btnRec.Text = 'Record 10 s';
++
++        acceptSignal(x, sprintf('Recorded %.1f s', numel(x) / S.Cfg.audio.fs));
++    end
++
++    function onPlay()
++        if isempty(S.sig)
++            return
++        end
++        try
++            S.player = audioplayer(0.9 * S.sig / max(abs(S.sig)), S.Cfg.audio.fs);
++            play(S.player);
++        catch err
++            setStatus(['Playback unavailable: ' err.message]);
++        end
++    end
++
++    function onMode(newMode)
++        S.mode = newMode;
++        S.Cfg  = systemConfig(newMode);
++        setStatus(sprintf('System: %s (%s)', newMode, S.Cfg.tag));
++        clearVerdict();
++    end
++
++    function onIdentify()
++        if isempty(S.sig)
++            return
++        end
++
++        minSamples = S.Cfg.stft.winLen;
++        if numel(S.sig) < minSamples
++            setStatus(sprintf('Clip is too short - need at least %.2f s.', ...
++                minSamples / S.Cfg.audio.fs));
++            return
++        end
++
++        dlg = uiprogressdlg(S.fig, 'Title', 'Identifying', ...
++            'Message', sprintf('Loading the %s index...', S.mode), ...
++            'Indeterminate', true);
++        cleanup = onCleanup(@() close(dlg));
++
++        try
++            Idx = getIndex(S.mode);
++        catch err
++            setStatus(['Index unavailable: ' err.message]);
++            return
++        end
++
++        dlg.Message = 'Matching...';
++
++        try
++            res = identifyQuery(S.sig, Idx, S.Cfg);
++        catch err
++            setStatus(['Identification failed: ' err.message]);
++            return
++        end
++
++        S.res = res;
++        showResult(res, Idx);
++    end
++
++% =====================================================================
++% Helpers
++% =====================================================================
++
++    function acceptSignal(x, msg)
++        S.sig = x(:);
++
++        S.btnId.Enable   = 'on';
++        S.btnPlay.Enable = 'on';
++
++        t = (0:numel(S.sig) - 1) / S.Cfg.audio.fs;
++        cla(S.axWave, 'reset');
++        plot(S.axWave, t, S.sig, 'Color', [0.25 0.45 0.75]);
++        xlim(S.axWave, [0 max(t(end), eps)]);
++        xlabel(S.axWave, 'Time (s)'); ylabel(S.axWave, 'Amplitude');
++        title(S.axWave, 'Waveform');
++
++        cla(S.axSpec, 'reset'); title(S.axSpec, 'Spectrogram + constellation');
++        cla(S.axHist, 'reset'); title(S.axHist, 'Time-offset histogram');
++        S.tbl.Data = cell(0, 5);
++        S.txtDetail.Value = {''};
++        clearVerdict();
++
++        setStatus(msg);
++    end
++
++    function Idx = getIndex(mode)
++        Cfg = systemConfig(mode);
++
++        if isKey(S.indexCache, Cfg.tag)
++            Idx = S.indexCache(Cfg.tag);
++            return
++        end
++
++        p = fullfile(S.projRoot, 'db', sprintf('index_%s.mat', Cfg.tag));
++        if ~isfile(p)
++            error('No index for "%s" at %s. Run s03_enroll for that system.', ...
++                mode, p);
++        end
++
++        D   = load(p);
++        Idx = D.Idx;
++        S.indexCache(Cfg.tag) = Idx;
++    end
++
++    function showResult(res, Idx)
++        plotConstellation(res.Smag, res.peaks, S.Cfg, S.axSpec);
++        plotOffsetHistogram(res, S.Cfg, S.axHist);
++
++        rows = {};
++        ranks = [res.pred1, res.pred2];
++        scores = [res.score1, res.score2];
++        for k = 1:2
++            if ranks(k) < 1
++                continue
++            end
++            [ttl, art] = songName(ranks(k));
++            rows(end + 1, :) = {k, ranks(k), ttl, art, scores(k)}; %#ok<AGROW>
++        end
++        S.tbl.Data = rows;
++
++        S.txtDetail.Value = { ...
++            sprintf('normScore   %.4f   (tau %.4f)', res.normScore, S.Cfg.match.tau), ...
++            sprintf('margin      %.2f     (rho %.2f)', res.margin, S.Cfg.match.rho), ...
++            sprintf('query hashes %d over %.1f s', res.nQueryHashes, res.durationSec), ...
++            sprintf('candidates   %d of %d enrolled', res.nCandidateSongs, ...
++                    Idx.stats.nSongsEnrolled), ...
++            sprintf('match time   %.1f ms  (fingerprint %.1f ms)', ...
++                    1000 * res.tMatchSec, 1000 * res.tHashSec)};
++
++        accepted = res.accepted;
++        if isnan(accepted)
++            accepted = res.normScore >= S.Cfg.match.tau && res.margin >= S.Cfg.match.rho;
++        end
++
++        if accepted
++            [ttl, art] = songName(res.pred1);
++            S.lamp.Color = [0.20 0.75 0.35];
++            S.lblVerdict.Text = sprintf('MATCH - %s', ttl);
++            setStatus(sprintf('%s - %s   (%s system, %.0f ms)', ...
++                ttl, art, S.mode, 1000 * res.tTotalSec));
++        else
++            S.lamp.Color = [0.85 0.30 0.25];
++            S.lblVerdict.Text = 'NO MATCH';
++            setStatus(sprintf(['Below threshold - reported as no match. ' ...
++                'Best guess was songID %d at normScore %.4f.'], ...
++                res.pred1, res.normScore));
++        end
++    end
++
++    function [ttl, art] = songName(id)
++        ttl = sprintf('songID %d', id);
++        art = '';
++        if isempty(S.catalog) || id < 1
++            return
++        end
++        row = S.catalog(S.catalog.songID == id, :);
++        if isempty(row)
++            return
++        end
++        ttl = char(row.title(1));
++        art = char(row.artist(1));
++    end
++
++    function clearVerdict()
++        S.lamp.Color      = [0.85 0.85 0.85];
++        S.lblVerdict.Text = '';
++    end
++
++    function setStatus(msg)
++        S.lblStatus.Text = msg;
++        drawnow limitrate;
++    end
++
++end
+diff --git a/src/viz/plotConstellation.m b/src/viz/plotConstellation.m
+index d8ad0c0..c1d5ac6 100644
+--- a/src/viz/plotConstellation.m
++++ b/src/viz/plotConstellation.m
+@@ -1,16 +1,69 @@
+ function ax = plotConstellation(Smag, peaks, Cfg, ax)
+ %PLOTCONSTELLATION Spectrogram with the constellation map overlaid.
+ %
+-%   Shared by the paper figures and the GUI - written once, used in both.
++%   AX = PLOTCONSTELLATION(SMAG, PEAKS, CFG) draws into a new figure.
++%   AX = PLOTCONSTELLATION(SMAG, PEAKS, CFG, AX) draws into an existing axes,
++%   which is how the GUI and the paper figures share one implementation.
+ %
+-%   Milestone: M1.  Blueprint: section(s) 4.
++%   Magnitude is shown in dB relative to the spectrogram maximum, so the image
++%   looks the same whatever gain the signal arrived at - the same reason
++%   Cfg.peaks.floorDb is relative rather than absolute.
+ %
+-%   STATUS: stub. The contract above is frozen (blueprint section 5); the body
+-%   is written at the milestone named above.
++%   Milestone: M6.  Blueprint: sections 3.3, 4.
+ %
+-%   See also PICKPEAKS, APPCONTROLLER.
++%   See also PICKPEAKS, PLOTOFFSETHISTOGRAM, HIMIGTRANSFORMAPP.
+ 
+-error('HimigTransform:NotImplemented', ...
+-    'plotConstellation is a stub (Milestone M1). See docs/designNotes.md.');
++narginchk(3, 4);
++
++if nargin < 4 || isempty(ax)
++    ax = axes('Parent', figure('Color', 'w'));
++end
++
++cla(ax, 'reset');
++
++if isempty(Smag)
++    title(ax, 'No signal');
++    return
++end
++
++nFrames = size(Smag, 2);
++tSec = ((0:nFrames - 1) * Cfg.stft.hop + Cfg.stft.winLen / 2) / Cfg.audio.fs;
++fHz  = (0:size(Smag, 1) - 1) * Cfg.derived.binWidthHz;
++
++peakMag = max(Smag(:));
++if peakMag <= 0
++    peakMag = 1;
++end
++SdB = 20 * log10(max(Smag, realmin) / peakMag);
++
++imagesc(ax, tSec, fHz, SdB);
++set(ax, 'YDir', 'normal');
++ax.CLim = [-80 0];          % not caxis(): clim/caxis naming moved in R2022a
++colormap(ax, gray);
++
++hold(ax, 'on');
++
++nPeaks = numel(peaks.tIdx);
++if nPeaks > 0
++    pt = (double(peaks.tIdx) - 1) * Cfg.stft.hop / Cfg.audio.fs ...
++         + Cfg.stft.winLen / (2 * Cfg.audio.fs);
++    pf = (double(peaks.fIdx) - 1) * Cfg.derived.binWidthHz;
++
++    plot(ax, pt, pf, 'o', ...
++        'MarkerSize', 4, 'LineWidth', 0.9, ...
++        'MarkerEdgeColor', [1.00 0.35 0.25]);
++end
++
++hold(ax, 'off');
++
++xlabel(ax, 'Time (s)');
++ylabel(ax, 'Frequency (Hz)');
++
++durSec = max(tSec(end), eps);
++title(ax, sprintf('Constellation map - %d peaks (%.1f/s)', ...
++    nPeaks, nPeaks / durSec));
++
++xlim(ax, [0 max(tSec(end), eps)]);
++ylim(ax, [0 Cfg.audio.fs / 2]);
+ 
+ end
+diff --git a/src/viz/plotOffsetHistogram.m b/src/viz/plotOffsetHistogram.m
+index c9d0a23..0dd1dc6 100644
+--- a/src/viz/plotOffsetHistogram.m
++++ b/src/viz/plotOffsetHistogram.m
+@@ -1,18 +1,54 @@
+ function ax = plotOffsetHistogram(res, Cfg, ax)
+ %PLOTOFFSETHISTOGRAM Time-offset histogram for the winning candidate.
+ %
+-%   Shared by the paper figures and the GUI. Visually, a correct match is a
+-%   single sharp spike; a false match is a flat smear. It is the most
+-%   convincing single frame in a live demo.
++%   AX = PLOTOFFSETHISTOGRAM(RES, CFG) draws into a new figure.
++%   AX = PLOTOFFSETHISTOGRAM(RES, CFG, AX) draws into an existing axes.
+ %
+-%   Milestone: M1.  Blueprint: section(s) 3.5.
++%   RES comes from IDENTIFYQUERY. This is the most informative single frame in
++%   the whole system: a correct match is ONE sharp spike, because every
++%   matching hash pair shares the same alignment between query and recording.
++%   A false match is a flat smear of coincidental collisions at scattered
++%   offsets. The contrast is visible at a glance, which makes it both the
++%   fastest way to diagnose a broken matcher and the most convincing thing to
++%   show in a live demo.
+ %
+-%   STATUS: stub. The contract above is frozen (blueprint section 5); the body
+-%   is written at the milestone named above.
++%   Milestone: M6.  Blueprint: section 3.5.
+ %
+-%   See also IDENTIFYQUERY, APPCONTROLLER.
++%   See also IDENTIFYQUERY, ALIGNOFFSETS, PLOTCONSTELLATION.
+ 
+-error('HimigTransform:NotImplemented', ...
+-    'plotOffsetHistogram is a stub (Milestone M1). See docs/designNotes.md.');
++narginchk(2, 3);
++
++if nargin < 3 || isempty(ax)
++    ax = axes('Parent', figure('Color', 'w'));
++end
++
++cla(ax, 'reset');
++
++if isempty(res.offsetHist) || ~any(res.offsetHist)
++    title(ax, 'No hash collisions');
++    xlabel(ax, 'Reference minus query offset (s)');
++    ylabel(ax, 'Matching hashes');
++    return
++end
++
++offsetFrames = (1:numel(res.offsetHist)) - res.offsetShift;
++offsetSec    = offsetFrames * Cfg.stft.hop / Cfg.audio.fs;
++
++bar(ax, offsetSec, res.offsetHist, 1, ...
++    'FaceColor', [0.25 0.45 0.75], 'EdgeColor', 'none');
++
++hold(ax, 'on');
++peakSec = res.bestOffsetFrames * Cfg.stft.hop / Cfg.audio.fs;
++plot(ax, peakSec, res.score1, 'v', ...
++    'MarkerSize', 8, 'MarkerFaceColor', [0.95 0.65 0.10], ...
++    'MarkerEdgeColor', [0.35 0.22 0.02]);
++hold(ax, 'off');
++
++xlabel(ax, 'Reference minus query offset (s)');
++ylabel(ax, 'Matching hashes');
++grid(ax, 'on');
++
++title(ax, sprintf('Song %d - peak %d hashes, margin %.1f', ...
++    res.pred1, res.score1, res.margin));
+ 
+ end
+-- 
+2.43.0
+
+
+From 5ee7c30cb79fb7467d9158f4771c29a169f48ad4 Mon Sep 17 00:00:00 2001
+From: Crindo18 <chrisjohnalado@gmail.com>
+Date: Sat, 15 Aug 2026 11:45:21 +0000
+Subject: [PATCH 2/2] s08_makeTables: verify aligned rows are the SAME query,
+ not just the same ID
+
+queryID is assigned sequentially as buildQueryManifest walks the
+catalogue, so removing the duplicate holdout song and rebuilding
+renumbered everything after it. The baseline test results predate that
+rebuild while enh1/enh2 postdate it - which is why the enhanced
+comparison shows n=720 per cell and the ablations show n=639.
+
+Matching IDs alone would let McNemar pair a 3 s clean query against a
+10 s query at -20 dB with no visible symptom: the table looks normal,
+the p-values look normal, the conclusion is wrong. Now s08 checks
+songID, lengthSec, targetSnrDb and noiseType row for row and refuses.
+---
+ scripts/s08_makeTables.m | 42 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 42 insertions(+)
+
+diff --git a/scripts/s08_makeTables.m b/scripts/s08_makeTables.m
+index 9784eef..8c90320 100644
+--- a/scripts/s08_makeTables.m
++++ b/scripts/s08_makeTables.m
+@@ -70,6 +70,48 @@
+         'queryID alignment failed after intersect - do not proceed.');
+ end
+ 
++% ---- Same queryID must mean the SAME QUERY ------------------------------
++% Matching IDs is not enough. queryID is assigned sequentially as
++% BUILDQUERYMANIFEST walks the catalogue, so adding, removing or re-splitting
++% a single song renumbers everything after it. Two files can then share a
++% queryID that refers to completely different audio, and the comparison
++% silently pairs a 3 s clean query against a 10 s query at -20 dB.
++%
++% Nothing downstream can detect that: the table looks normal, the p-values
++% look normal, and the conclusion is wrong. So check the content, not the ID.
++identity = {'songID', 'lengthSec', 'targetSnrDb', 'noiseType'};
++mismatch = {};
++
++for f = identity
++    name = f{1};
++    if ~ismember(name, A.Properties.VariableNames), continue, end
++
++    va = A.(name);
++    vb = B.(name);
++
++    if isnumeric(va) || islogical(va)
++        same = isequaln(double(va), double(vb));
++    else
++        same = isequal(cellstr(string(va)), cellstr(string(vb)));
++    end
++
++    if ~same
++        mismatch{end+1} = name; %#ok<SAGROW>
++    end
++end
++
++if ~isempty(mismatch)
++    error('HimigTransform:ManifestMismatch', ...
++        ['The two files share queryIDs but disagree on: %s.\n' ...
++         'They were built from DIFFERENT query manifests - re-running ' ...
++         's01_ingest or s04_buildQueries renumbers queryID, so an older ' ...
++         'results file cannot be compared against a newer one.\n' ...
++         'Re-run s06 for BOTH systems against the current manifest.'], ...
++        strjoin(mismatch, ', '));
++end
++
++logMsg('info', 'Alignment verified on %s.', strjoin(identity, ', '));
++
+ % ---- Per-cell McNemar ---------------------------------------------------
+ lengths = unique(A.lengthSec);
+ snrs    = unique(A.targetSnrDb, 'stable');
+-- 
+2.43.0
+

@@ -70,6 +70,48 @@ if ~isequal(A.queryID, B.queryID)
         'queryID alignment failed after intersect - do not proceed.');
 end
 
+% ---- Same queryID must mean the SAME QUERY ------------------------------
+% Matching IDs is not enough. queryID is assigned sequentially as
+% BUILDQUERYMANIFEST walks the catalogue, so adding, removing or re-splitting
+% a single song renumbers everything after it. Two files can then share a
+% queryID that refers to completely different audio, and the comparison
+% silently pairs a 3 s clean query against a 10 s query at -20 dB.
+%
+% Nothing downstream can detect that: the table looks normal, the p-values
+% look normal, and the conclusion is wrong. So check the content, not the ID.
+identity = {'songID', 'lengthSec', 'targetSnrDb', 'noiseType'};
+mismatch = {};
+
+for f = identity
+    name = f{1};
+    if ~ismember(name, A.Properties.VariableNames), continue, end
+
+    va = A.(name);
+    vb = B.(name);
+
+    if isnumeric(va) || islogical(va)
+        same = isequaln(double(va), double(vb));
+    else
+        same = isequal(cellstr(string(va)), cellstr(string(vb)));
+    end
+
+    if ~same
+        mismatch{end+1} = name; %#ok<SAGROW>
+    end
+end
+
+if ~isempty(mismatch)
+    error('HimigTransform:ManifestMismatch', ...
+        ['The two files share queryIDs but disagree on: %s.\n' ...
+         'They were built from DIFFERENT query manifests - re-running ' ...
+         's01_ingest or s04_buildQueries renumbers queryID, so an older ' ...
+         'results file cannot be compared against a newer one.\n' ...
+         'Re-run s06 for BOTH systems against the current manifest.'], ...
+        strjoin(mismatch, ', '));
+end
+
+logMsg('info', 'Alignment verified on %s.', strjoin(identity, ', '));
+
 % ---- Per-cell McNemar ---------------------------------------------------
 lengths = unique(A.lengthSec);
 snrs    = unique(A.targetSnrDb, 'stable');
