@@ -168,17 +168,103 @@ end
 
 fprintf('\n  n per cell: %d - %d in-DB quer(ies)\n', min(T.nInDb), max(T.nInDb));
 
+% =======================================================================
+% 5b. Headroom - can success criterion 1 be demonstrated, and where?
+% =======================================================================
+% Criterion 1 asks for a >= 10 pp accuracy gain over the baseline. A gain
+% that large is only possible where the baseline has left at least 10 pp on
+% the table. On a 100-song database the baseline saturates well past 0 dB, so
+% this block says plainly which cells can carry the claim.
+%
+% Headroom is necessary, not sufficient: at the bottom of the curve both
+% systems approach zero and there is nothing left to recover either. The
+% usable region is the steep middle.
+fprintf('\n--- Headroom for the enhanced system (100%% - baseline) ---\n');
+fprintf('%8s', 'SNR');
+fprintf('%10.0f s', Cfg.eval.lengthsSec);
+fprintf('   %s\n', 'usable?');
+
+snrList = unique(T.targetSnrDb, 'stable');
+for si = 1:numel(snrList)
+    snr = snrList(si);
+    if isinf(snr) && snr > 0
+        fprintf('%8s', 'clean');
+    else
+        fprintf('%8.0f', snr);
+    end
+
+    room = nan(1, numel(Cfg.eval.lengthsSec));
+    for li = 1:numel(Cfg.eval.lengthsSec)
+        m = T.targetSnrDb == snr & T.lengthSec == Cfg.eval.lengthsSec(li);
+        if any(m)
+            room(li) = 100 * (1 - T.closedSetAcc(find(m, 1)));
+        end
+        fprintf('%10.1f  ', room(li));
+    end
+
+    nUsable = nnz(room >= 10);
+    if nUsable == 0
+        note = 'saturated - no 10 pp gain is possible here';
+    elseif all(room(~isnan(room)) > 80)
+        note = 'floor - both systems near zero, gain unlikely';
+    elseif nUsable == numel(room)
+        note = 'USABLE at every length';
+    else
+        note = 'usable at the shorter lengths only';
+    end
+    fprintf(' %s\n', note);
+end
+
+fprintf(['\n  Report the proposal''s clean/10/5/0 row as measured - a\n' ...
+         '  saturated baseline on a 100-song database is a real result. Then\n' ...
+         '  demonstrate the recovery where the baseline actually degrades,\n' ...
+         '  and say in the paper which SNR carries the criterion-1 claim.\n']);
+
 % Open-set numbers are plumbing until tau and rho are calibrated on dev at M5.
 % Printing them without that caveat is how a placeholder threshold ends up
 % quoted as a result.
+%
+% POOLED OPEN-SET FIGURES ARE NOT A PROPERTY OF THE SYSTEM. Recall and FAR
+% pooled over the whole grid depend on the grid's COMPOSITION: every SNR point
+% added below the knee drags pooled recall down, and every one added above it
+% pushes recall up, without a line of code changing. Extending the grid to
+% -25 dB is what moved pooled recall from ~1.0 to ~0.6, not any change in
+% behaviour. The same applies to FAR: a holdout query at -25 dB generates
+% almost no usable hashes, so it is rejected for the wrong reason and flatters
+% the number.
+%
+% Quote open-set metrics AT A NAMED CONDITION, never pooled.
 fprintf('\n--- Open-set (tau = %.3f, rho = %.2f - PLACEHOLDERS, tuned at M5) ---\n', ...
     Cfg.match.tau, Cfg.match.rho);
+
+Topen = computeMetrics(R, {'lengthSec', 'targetSnrDb'});
+
+fprintf('%8s %8s %11s %9s %8s %8s\n', ...
+    'length', 'SNR', 'precision', 'recall', 'FAR', 'n(hold)');
+for li = 1:numel(Cfg.eval.lengthsSec)
+    for si = 1:numel(snrList)
+        m = Topen.lengthSec == Cfg.eval.lengthsSec(li) & ...
+            Topen.targetSnrDb == snrList(si);
+        if ~any(m), continue, end
+        r = find(m, 1);
+
+        if isinf(snrList(si)) && snrList(si) > 0
+            snrLabel = 'clean';
+        else
+            snrLabel = sprintf('%.0f', snrList(si));
+        end
+
+        fprintf('%7.0fs %8s %11.3f %9.3f %8.3f %8d\n', ...
+            Cfg.eval.lengthsSec(li), snrLabel, ...
+            Topen.precision(r), Topen.recall(r), Topen.far(r), Topen.nHoldout(r));
+    end
+end
+
 Tall = computeMetrics(R, {'system'});
-fprintf('  precision : %.3f [%.3f - %.3f]\n', Tall.precision, Tall.precisionLo, Tall.precisionHi);
-fprintf('  recall    : %.3f [%.3f - %.3f]\n', Tall.recall,    Tall.recallLo,    Tall.recallHi);
-fprintf('  FAR       : %.3f [%.3f - %.3f]  (n = %d holdout)\n', ...
-    Tall.far, Tall.farLo, Tall.farHi, Tall.nHoldout);
-fprintf('  Do NOT quote these - they are a plumbing check until M5.\n');
+fprintf('\n  pooled over the WHOLE grid: precision %.3f, recall %.3f, FAR %.3f\n', ...
+    Tall.precision, Tall.recall, Tall.far);
+fprintf('  ^ grid-composition artefact. Do not quote it; quote a row above.\n');
+fprintf('  All of these are a plumbing check until tau/rho are tuned at M5.\n');
 
 % =======================================================================
 % 6. Timing (blueprint 6.3)

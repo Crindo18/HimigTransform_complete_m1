@@ -344,3 +344,89 @@ These are open and should be resolved at the milestone named.
 | Extend the SNR grid to `[Inf 20 15 10 5 0]`? | before M3 | Costs nothing, gives the curve a knee. Ask the adviser. |
 | Single `tau` across query lengths, or per-length? | M5 | Normalising by `nQueryHashes` should make one `tau` work. Verify. |
 | `repsPerSong` 3 or 5? | M7 | Raise to 5 if the 10 pp claim lands marginal. |
+
+---
+
+## 2026-08-15 — Full baseline run: the grid works, and where criterion 1 lands
+
+27,000 queries in **14.1 minutes** (was 0.373 s/query, now 0.031 s/query — the
+`projectRoot` fix landed). The extended SNR grid produces a proper sigmoid
+instead of a flat ceiling:
+
+| SNR | 3 s | 5 s | 10 s |
+|---|---|---|---|
+| clean | 100.0 | 100.0 | 100.0 |
+| 10 | 99.9 | 100.0 | 100.0 |
+| 5 | 99.8 | 100.0 | 100.0 |
+| 0 | 98.2 | 99.6 | 99.9 |
+| −5 | 89.2 | 94.3 | 97.9 |
+| −10 | 67.8 | 77.2 | 88.0 |
+| −15 | 38.6 | 49.4 | 65.1 |
+| −20 | 13.0 | 21.8 | 32.1 |
+| −25 | 3.0 | 5.9 | 7.6 |
+
+`s06b_findKnee` on 15 songs agreed closely with the full 120-song run (3 s at
+−10 dB: 67.8% probe vs 67.8% full), which is a useful cross-check that the
+probe and the harness measure the same thing.
+
+### Where a 10-point gain can be demonstrated
+
+Criterion 1 asks for **≥10 pp over the baseline at 0 dB**. Headroom
+(100 − baseline) by cell:
+
+| SNR | 3 s | 5 s | 10 s | verdict |
+|---|---|---|---|---|
+| 0 | 1.8 | 0.4 | 0.1 | **saturated — the criterion cannot be met here** |
+| −5 | 10.8 | 5.7 | 2.1 | only 3 s has room |
+| −10 | 32.2 | 22.8 | 12.0 | usable at every length |
+| −15 | 61.4 | 50.6 | 34.9 | usable at every length |
+| −20/−25 | >67 | >67 | >67 | floor — both systems near zero |
+
+The steepest part of the curve is −5 → −15 dB (21–29 pp per 5 dB step at 3 s).
+That is where a peak-selection enhancement has the most to recover, and where
+the comparison is most sensitive.
+
+**−10 dB is the operating point for the criterion-1 claim.** It has room at all
+three lengths, it sits on the steep section rather than the floor, and the
+baseline still retains 67.8% so a recovery is a recovery rather than a rescue
+from zero.
+
+**Do not rewrite the criterion.** Report the proposal's clean/10/5/0 row exactly
+as specified and state the measured gain there, then add the extended rows and
+name the SNR that carries the claim. Rewriting a success criterion after seeing
+the data is the thing a panel will ask about; reporting against it honestly and
+explaining the saturation is not.
+
+The explanation to give: at 0 dB the fingerprint IS being destroyed — peak
+survival measures around 12% — but on a 100-song database a dozen surviving
+hashes still beat 99 rivals contributing one or two chance collisions each.
+Shazam-style degradation at 0 dB is a property of a catalogue of millions. That
+is a finding about database scale, and it belongs in the discussion.
+
+`s06_runEvaluation` now prints this headroom table automatically, so the
+question is answered before the enhanced run rather than after.
+
+### Pooled open-set metrics are a grid artefact
+
+The run reported pooled recall 0.627. That number is not a property of the
+system: pooled recall and FAR depend on the grid's **composition**. Every SNR
+point added below the knee drags pooled recall down and every one added above
+pushes it up, with no code change at all. Extending the grid to −25 dB is what
+moved pooled recall from near 1.0 to 0.63.
+
+FAR has the mirror problem: a holdout query at −25 dB generates almost no usable
+hashes, so it is rejected for the wrong reason and the number flatters itself.
+
+`s06` now prints precision, recall and FAR **per (length, SNR)** and labels the
+pooled figure as an artefact. Quote a named condition in the paper, never the
+pool.
+
+### Still open
+
+| | | |
+|---|---|---|
+| 1 | Tag `v0.1-baseline-frozen` | now — the baseline is measured and stable |
+| 2 | Build the enhanced index and run s06 for it | next |
+| 3 | `mcnemarTest` + `tuneThresholds` are still stubs | M5 |
+| 4 | Report normScore alongside accuracy | it degrades at 0 dB where accuracy does not |
+| 5 | `freqDecim` ablation | M4 |
