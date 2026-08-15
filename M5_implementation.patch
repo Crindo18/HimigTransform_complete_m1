@@ -1,0 +1,1198 @@
+From c7b63aaadbe994051439af7cb8616d0a10ebd6f7 Mon Sep 17 00:00:00 2001
+From: Crindo18 <chrisjohnalado@gmail.com>
+Date: Sat, 15 Aug 2026 06:47:37 +0000
+Subject: [PATCH] M5: open-set threshold tuning, exact McNemar, and a
+ system-labelling fix
+
+BLOCKING FIX. s03_enroll and s06_runEvaluation were hard-coded to
+enhancedConfig() while a separate s06_system variable carried the label
+into the filename, the 'system' column and every downstream figure.
+Setting s06_system='baseline' would have written results_baseline_*.csv
+stamped system=baseline containing ENHANCED numbers - and a McNemar test
+between two such files compares the enhanced system against itself and
+reports no significant difference, which looks exactly like a real
+negative result. New systemConfig(name) derives the config FROM the
+label so the two cannot disagree.
+
+M5 implementations:
+  mcnemarTest      exact two-sided binomial on discordant pairs, via
+                   gammaln so large m does not overflow. Concordant
+                   pairs verified not to move p - that property is what
+                   makes the test paired and it is easy to break.
+  tuneThresholds   2-D sweep of (tau, rho); default objective is max
+                   recall subject to a FAR budget, because naming the
+                   wrong song is worse than saying nothing. Refuses any
+                   row not from the dev split. Tunes on the proposal's
+                   declared envelope (0 dB and above) by default, so the
+                   threshold is not chosen by cells no system can serve.
+  plotOpenSetRoc   recall vs FAR with the Pareto frontier highlighted -
+                   two thresholds mean the sweep is a cloud, not a
+                   curve, and a dominated point must not read as one.
+  s05_tuneThresholds  tunes both systems, shows what other FAR budgets
+                   would buy, prints the config lines to paste back.
+
+Also correct in the M4-check commit and kept: enrolment now forces
+denoise off, so references are never denoised (blueprint 3.7). The
+fingerprint cfgTag is unaffected because extractCfg.tag is not
+recomputed, so the index tag check still passes.
+
+tOpenSetTuning: 12 tests covering the exact p-value against its closed
+form, paired-ness, the dev-split guard, FAR-budget compliance, FAR
+monotonicity in tau, and label/config agreement.
+---
+ config/systemConfig.m        |  46 ++++++
+ scripts/s03_enroll.m         |   9 +-
+ scripts/s05_tuneThresholds.m | 205 ++++++++++++++++++++++++--
+ scripts/s06_runEvaluation.m  |  12 +-
+ src/eval/mcnemarTest.m       | 161 ++++++++++++++++++--
+ src/eval/tuneThresholds.m    | 278 +++++++++++++++++++++++++++++++++--
+ src/viz/plotOpenSetRoc.m     | 136 +++++++++++++++--
+ tests/tOpenSetTuning.m       | 209 ++++++++++++++++++++++++++
+ 8 files changed, 999 insertions(+), 57 deletions(-)
+ create mode 100644 config/systemConfig.m
+ create mode 100644 tests/tOpenSetTuning.m
+
+diff --git a/config/systemConfig.m b/config/systemConfig.m
+new file mode 100644
+index 0000000..0e55935
+--- /dev/null
++++ b/config/systemConfig.m
+@@ -0,0 +1,46 @@
++function Cfg = systemConfig(systemName)
++%SYSTEMCONFIG Map a system NAME to its configuration. One source of truth.
++%
++%   CFG = SYSTEMCONFIG('baseline') returns BASELINECONFIG.
++%   CFG = SYSTEMCONFIG('enhanced') returns ENHANCEDCONFIG.
++%
++%   WHY THIS EXISTS. The scripts previously hard-coded which config to build,
++%   while a SEPARATE variable carried the system NAME into the results file,
++%   the filename and the `system` column. Nothing tied the two together, so
++%   setting s06_system = 'baseline' against a script hard-coded to
++%   ENHANCEDCONFIG produced a file called results_baseline_*.csv, stamped
++%   system = "baseline", containing enhanced numbers.
++%
++%   That failure is silent and total. Every downstream step - the metrics
++%   table, the figures, the McNemar comparison - would read the label and
++%   believe it. A McNemar test between two mislabelled files compares the
++%   enhanced system against itself and reports no significant difference,
++%   which looks exactly like a real negative result.
++%
++%   Deriving the config FROM the name makes the two impossible to disagree.
++%
++%   Milestone: M5.  Blueprint: sections 6.4, 8.4.
++%
++%   See also BASELINECONFIG, ENHANCEDCONFIG, S06_RUNEVALUATION.
++
++narginchk(1, 1);
++
++name = lower(strtrim(char(systemName)));
++
++switch name
++    case 'baseline'
++        Cfg = baselineConfig();
++    case 'enhanced'
++        Cfg = enhancedConfig();
++    otherwise
++        error('HimigTransform:UnknownSystem', ...
++            ['Unknown system "%s". Expected ''baseline'' or ''enhanced''. ' ...
++             'Ablation runs (enh1 / enh2 alone) get their own named entry ' ...
++             'here rather than an edited script - see docs/designNotes.md.'], ...
++            name);
++end
++
++% The label the caller asked for must be the label the results carry.
++Cfg.systemName = name;
++
++end
+diff --git a/scripts/s03_enroll.m b/scripts/s03_enroll.m
+index 60c3f6f..867bbdb 100644
+--- a/scripts/s03_enroll.m
++++ b/scripts/s03_enroll.m
+@@ -27,7 +27,14 @@
+ %       s03_enroll
+ 
+ projRoot = setupPaths();
+-Cfg      = enhancedConfig();
++
++% Which system to enrol. Set s03_system = 'enhanced' before running rather
++% than editing this line - an edited script is how the baseline index quietly
++% stops being rebuildable, and how a results file ends up labelled with a
++% system it was not produced by. See SYSTEMCONFIG.
++if ~exist('s03_system', 'var') || isempty(s03_system), s03_system = 'baseline'; end
++
++Cfg = systemConfig(s03_system);
+ rng(Cfg.seed, 'twister');
+ 
+ logMsg('info', '===== s03_enroll =====');
+diff --git a/scripts/s05_tuneThresholds.m b/scripts/s05_tuneThresholds.m
+index 359d04f..e677a9a 100644
+--- a/scripts/s05_tuneThresholds.m
++++ b/scripts/s05_tuneThresholds.m
+@@ -1,23 +1,196 @@
+-%S05_TUNETHRESHOLDS  Sweep tau and rho on the DEV split.
++%S05_TUNETHRESHOLDS  Choose tau and rho on the DEV split, for both systems.
+ %
+-%   DEV ONLY. The test split is touched exactly once, at s06 (M7).
++%   Reads a dev-split results file per system, sweeps the open-set accept rule
++%   and reports the chosen operating point. Writes the sweep, the ROC figure
++%   and a summary you paste back into config/.
+ %
+-%   Write the chosen tau and rho back into config/enhancedConfig.m and
+-%   commit
+-%   that change BEFORE running s06. If the thresholds move after you have
+-%   seen
+-%   test results, the result is no longer defensible.
++%   Prerequisite - run these FIRST, once per system:
++%       s06_system = 'baseline'; s06_split = 'dev'; s06_runEvaluation
++%       s06_system = 'enhanced'; s06_split = 'dev'; s06_runEvaluation
+ %
+-%   Milestone: M5.  Blueprint: section 7.
++%   Then:
++%       s05_tuneThresholds
+ %
+-%   STATUS: stub. Run order is s01 -> s08; each script is idempotent.
++%   Options
++%       s05_farBudget   max tolerable false-accept rate (default 0.01)
++%       s05_systems     {'baseline','enhanced'} by default
+ %
+-%   Usage:
+-%       setupPaths;
+-%       s05_tuneThresholds
++%   DEV ONLY, AND ONCE. The test split is touched exactly once, at M7. Write
++%   the chosen tau and rho into config/baselineConfig.m and
++%   config/enhancedConfig.m, COMMIT that change, and only then run s06 on the
++%   test split. If the thresholds move after you have seen test numbers, the
++%   result is no longer defensible and a panel is entitled to say so.
++%
++%   TWO OPERATING POINTS, NOT ONE. The enhanced system emits more hashes per
++%   query, so its normScore sits on a different scale. Carrying the baseline's
++%   tau across to it would make part of the measured difference a threshold
++%   artefact rather than an effect of the enhancement.
++%
++%   Milestone: M5.  Blueprint: sections 3.5, 8.2, 8.3.
++%
++%   See also TUNETHRESHOLDS, PLOTOPENSETROC, DECIDEOPENSET.
++
++projRoot = setupPaths();
++
++if ~exist('s05_farBudget', 'var') || isempty(s05_farBudget)
++    s05_farBudget = 0.01;
++end
++if ~exist('s05_systems', 'var') || isempty(s05_systems)
++    s05_systems = {'baseline', 'enhanced'};
++end
++
++logMsg('info', '===== s05_tuneThresholds =====');
++logMsg('info', 'FAR budget %.3f | systems: %s', ...
++    s05_farBudget, strjoin(s05_systems, ', '));
++
++rawDir  = fullfile(projRoot, 'results', 'raw');
++outDir  = fullfile(projRoot, 'results', 'tables');
++figDir  = fullfile(projRoot, 'results', 'figures');
++for d = {outDir, figDir}
++    if ~isfolder(d{1}), mkdir(d{1}); end
++end
++
++chosen = struct('system', {}, 'tau', {}, 'rho', {}, ...
++                'recall', {}, 'precision', {}, 'far', {}, ...
++                'nInDb', {}, 'nHoldout', {}, 'file', {});
++
++for si = 1:numel(s05_systems)
++    sysName = s05_systems{si};
++
++    % ---- Find the most recent dev results for this system ---------------
++    pattern = fullfile(rawDir, sprintf('results_%s_*.mat', sysName));
++    files   = dir(pattern);
++
++    if isempty(files)
++        logMsg('warn', ['No results for "%s" in results/raw. Run: ' ...
++            's06_system = ''%s''; s06_split = ''dev''; s06_runEvaluation'], ...
++            sysName, sysName);
++        continue
++    end
++
++    [~, newest] = max([files.datenum]);
++    resPath = fullfile(files(newest).folder, files(newest).name);
++
++    S = load(resPath);
++    R = S.R;
++
++    % ---- Refuse anything that is not purely dev -------------------------
++    isDev = strcmp(cellstr(string(R.split)), 'dev');
++
++    if ~any(isDev)
++        logMsg('warn', '%s holds no dev rows - skipping. (%s)', sysName, files(newest).name);
++        continue
++    end
++
++    if ~all(isDev)
++        % A file run with s06_split = 'all' contains test rows too. Filtering
++        % is safe and better than refusing, but say so loudly: the intent was
++        % a dev-only run, and silently proceeding is how a habit forms.
++        logMsg('warn', ...
++            ['%s was run with split = ''all'' (%d of %d rows are dev). ' ...
++             'Filtering to dev. Prefer s06_split = ''dev'' so the file ' ...
++             'cannot be confused with a test result.'], ...
++            sysName, nnz(isDev), height(R));
++        R = R(isDev, :);
++    end
++
++    % ---- Confirm the file is what it claims to be -----------------------
++    % systemConfig makes the label and the config agree at run time; this
++    % catches a file produced before that fix.
++    Cfg = systemConfig(sysName);
++    fileTag = "unknown";
++    if ismember('cfgTag', R.Properties.VariableNames) && height(R) > 0
++        fileTag = string(R.cfgTag(1));
++    end
++    if fileTag ~= "unknown" && ~strcmp(char(fileTag), Cfg.tag)
++        error('HimigTransform:SystemTagMismatch', ...
++            ['%s claims system "%s" but carries config tag %s, while ' ...
++             '%sConfig produces %s. This file was produced by a different ' ...
++             'configuration than its name says - discard it and re-run.'], ...
++            files(newest).name, sysName, fileTag, sysName, Cfg.tag);
++    end
++
++    % ---- Sweep ----------------------------------------------------------
++    fprintf('\n===== %s =====\n', sysName);
++    fprintf('  source: %s\n', files(newest).name);
++
++    [tau, rho, sweep] = tuneThresholds(R, Cfg, 'FarBudget', s05_farBudget);
++
++    U = sweep.Properties.UserData;
++    k = U.chosenIdx;
++
++    fprintf('\n  chosen operating point\n');
++    fprintf('    tau        : %.4f   (was %.4f)\n', tau, Cfg.match.tau);
++    fprintf('    rho        : %.2f     (was %.2f)\n', rho, Cfg.match.rho);
++    fprintf('    recall     : %.3f\n', sweep.recall(k));
++    fprintf('    precision  : %.3f\n', sweep.precision(k));
++    fprintf('    FAR        : %.4f  (budget %.4f)\n', sweep.far(k), s05_farBudget);
++    fprintf('    tuned on   : %g dB and above, %d in-DB / %d holdout dev queries\n', ...
++        U.snrRange(1), U.nInDb, U.nHoldout);
++
++    % ---- What the budget bought -----------------------------------------
++    fprintf('\n  what other budgets would give\n');
++    fprintf('%12s %10s %11s\n', 'FAR budget', 'recall', 'precision');
++    for b = [0.001 0.005 0.01 0.02 0.05 0.10]
++        ok = find(sweep.far <= b);
++        if isempty(ok)
++            fprintf('%12.3f %10s %11s\n', b, '-', '-');
++            continue
++        end
++        [bestRec, j] = max(sweep.recall(ok));
++        fprintf('%12.3f %10.3f %11.3f\n', b, bestRec, sweep.precision(ok(j)));
++    end
++
++    % ---- Persist ---------------------------------------------------------
++    sweepPath = fullfile(outDir, sprintf('openSetSweep_%s.csv', sysName));
++    writetable(sweep, sweepPath);
++
++    fig     = plotOpenSetRoc(sweep, Cfg);
++    figPath = fullfile(figDir, sprintf('openSetRoc_%s.png', sysName));
++    exportgraphics(fig, figPath, 'Resolution', 200);
++    close(fig);
++
++    fprintf('\n  sweep  -> %s\n', sweepPath);
++    fprintf('  figure -> %s\n', figPath);
++
++    chosen(end + 1) = struct( ...
++        'system',    string(sysName), ...
++        'tau',       tau, ...
++        'rho',       rho, ...
++        'recall',    sweep.recall(k), ...
++        'precision', sweep.precision(k), ...
++        'far',       sweep.far(k), ...
++        'nInDb',     U.nInDb, ...
++        'nHoldout',  U.nHoldout, ...
++        'file',      string(files(newest).name)); %#ok<SAGROW>
++end
++
++if isempty(chosen)
++    error('HimigTransform:NothingTuned', ...
++        'No dev results found for any system. See the prerequisites above.');
++end
++
++C = struct2table(chosen);
++writetable(C, fullfile(outDir, 'openSetThresholds.csv'));
+ 
+-setupPaths;
+-rng(defaultConfig().seed, 'twister');
++% ---- What to paste back -------------------------------------------------
++fprintf('\n========================================================\n');
++fprintf('PASTE THESE INTO config/, THEN COMMIT, THEN RUN THE TEST SPLIT\n');
++fprintf('========================================================\n');
++for ii = 1:height(C)
++    fprintf('\n%% config/%sConfig.m\n', C.system(ii));
++    fprintf('Cfg.match.tau = %.4f;   %% tuned on dev, s05, FAR budget %.3f\n', ...
++        C.tau(ii), s05_farBudget);
++    fprintf('Cfg.match.rho = %.2f;     %% dev recall %.3f, precision %.3f, FAR %.4f\n', ...
++        C.rho(ii), C.recall(ii), C.precision(ii), C.far(ii));
++end
+ 
+-error('HimigTransform:NotImplemented', ...
+-    's05_tuneThresholds is a stub (Milestone M5). See docs/designNotes.md.');
++fprintf('\n--- s05 exit check ---\n');
++fprintf('Systems tuned           : %d\n', height(C));
++fprintf('Thresholds              : %s\n', ...
++    fullfile(outDir, 'openSetThresholds.csv'));
++fprintf('s05_tuneThresholds: PASS\n');
++fprintf(['Next: paste the values above into config/, COMMIT that change,\n' ...
++         'then run s06 with s06_split = ''test'' for each system.\n' ...
++         'Do not revisit the thresholds after seeing test numbers.\n']);
++fprintf('---------------------\n');
+diff --git a/scripts/s06_runEvaluation.m b/scripts/s06_runEvaluation.m
+index 6c3d628..e3fdb29 100644
+--- a/scripts/s06_runEvaluation.m
++++ b/scripts/s06_runEvaluation.m
+@@ -41,10 +41,16 @@
+ %       s06_runEvaluation
+ 
+ projRoot = setupPaths();
+-Cfg      = enhancedConfig();
+-rng(Cfg.seed, 'twister');
+ 
+-if ~exist('s06_system', 'var') || isempty(s06_system), s06_system = 'enhanced'; end
++% The system NAME chooses the config. Do not hard-code one here: the name is
++% what lands in the filename, the `system` column and every downstream figure,
++% so a script pinned to one config while the name says the other produces a
++% mislabelled results file that nothing downstream can detect. See
++% SYSTEMCONFIG.
++if ~exist('s06_system', 'var') || isempty(s06_system), s06_system = 'baseline'; end
++
++Cfg = systemConfig(s06_system);
++rng(Cfg.seed, 'twister');
+ if ~exist('s06_subset', 'var'),                        s06_subset = [];         end
+ if ~exist('s06_split',  'var') || isempty(s06_split),  s06_split  = 'all';      end
+ if ~exist('s06_parfor', 'var') || isempty(s06_parfor), s06_parfor = false;      end
+diff --git a/src/eval/mcnemarTest.m b/src/eval/mcnemarTest.m
+index f5d81f1..011d003 100644
+--- a/src/eval/mcnemarTest.m
++++ b/src/eval/mcnemarTest.m
+@@ -1,21 +1,154 @@
+-function [p, stats] = mcnemarTest(correctA, correctB)
+-%MCNEMARTEST Paired significance test for baseline vs enhanced.
++function [p, stats] = mcnemarTest(correctA, correctB, alpha)
++%MCNEMARTEST Exact paired significance test for baseline vs enhanced.
+ %
+-%   Exact binomial McNemar on the discordant pairs. Valid because the
+-%   manifest
+-%   pairs each query across systems: same excerpt, same noise segment, same
+-%   SNR. At n = 150 per cell the Wilson half-width is about +/- 5.7 pp, so a
+-%   claimed 10 pp gain needs this test rather than non-overlapping error
+-%   bars.
++%   [P, STATS] = MCNEMARTEST(CORRECTA, CORRECTB) takes two logical vectors of
++%   per-query outcomes, ALIGNED BY QUERY, and returns the two-sided exact
++%   McNemar p-value.
+ %
+-%   Milestone: M7.  Blueprint: section(s) 8.4.
++%   [P, STATS] = MCNEMARTEST(CORRECTA, CORRECTB, ALPHA) also sets the
++%   confidence level for the interval on the accuracy difference (default
++%   0.05).
+ %
+-%   STATUS: stub. The contract above is frozen (blueprint section 5); the body
+-%   is written at the milestone named above.
++%   STATS fields
++%       n            pairs compared
++%       b            A correct, B wrong   (discordant, favours A)
++%       c            A wrong, B correct   (discordant, favours B)
++%       nDiscordant  b + c
++%       accA, accB   marginal accuracies
++%       diff         accB - accA, in proportion (multiply by 100 for pp)
++%       diffLo/diffHi  Wald interval on the paired difference
++%       oddsRatio    c / b, the paired effect size
++%       significant  p < alpha
+ %
+-%   See also COMPUTEMETRICS.
++%   WHY PAIRED, AND WHY EXACT.
++%
++%   The two systems answer the SAME queries - same excerpt, same noise
++%   segment, same SNR - because the manifest fixes all of that before either
++%   system runs. That pairing is what this test exploits, and it is far more
++%   sensitive than comparing two independent proportions. At n = 900 per cell
++%   the Wilson half-width on a single accuracy is around 3 pp, so two
++%   intervals can overlap while the paired difference is unambiguous.
++%   Overlapping error bars are NOT evidence of no difference; this test is
++%   what settles it.
++%
++%   Only the DISCORDANT pairs carry information. Queries both systems get
++%   right, or both get wrong, say nothing about which is better - they cancel.
++%   Under the null "the enhancement changes nothing", each discordant pair is
++%   a fair coin, so the count follows Binomial(b + c, 0.5) and the exact test
++%   is a two-sided binomial tail. No chi-square approximation, no continuity
++%   correction to argue about, and it stays valid when b + c is small - which
++%   is exactly the situation in the cells where the systems nearly agree.
++%
++%   USE IT PER CELL, NOT POOLED. Pooling across the SNR grid mixes cells where
++%   the systems are identical with cells where they differ, and the pooled
++%   p-value then depends on how many of each the grid happens to contain.
++%
++%   Example
++%       mA = R.system == "baseline" & R.lengthSec == 3 & R.targetSnrDb == -10;
++%       mB = R.system == "enhanced" & R.lengthSec == 3 & R.targetSnrDb == -10;
++%       % sort BOTH by queryID first - alignment is the caller's job
++%       [p, s] = mcnemarTest(R.correct(mA), R.correct(mB));
++%
++%   Milestone: M5.  Blueprint: section 8.4.
++%
++%   See also COMPUTEMETRICS, WILSONINTERVAL.
++
++narginchk(2, 3);
++if nargin < 3 || isempty(alpha)
++    alpha = 0.05;
++end
++
++correctA = logical(correctA(:));
++correctB = logical(correctB(:));
++
++if numel(correctA) ~= numel(correctB)
++    error('HimigTransform:UnpairedInputs', ...
++        ['McNemar needs paired outcomes: got %d and %d. Both vectors must ' ...
++         'be the same queries in the same order - sort by queryID before ' ...
++         'calling, do not assume the two result files came out aligned.'], ...
++        numel(correctA), numel(correctB));
++end
++
++n = numel(correctA);
++
++stats            = struct();
++stats.n          = n;
++stats.b          = nnz(correctA & ~correctB);
++stats.c          = nnz(~correctA & correctB);
++stats.nDiscordant = stats.b + stats.c;
++stats.nBothRight = nnz(correctA & correctB);
++stats.nBothWrong = nnz(~correctA & ~correctB);
++stats.alpha      = alpha;
++
++if n == 0
++    p = NaN;
++    [stats.accA, stats.accB, stats.diff] = deal(NaN);
++    [stats.diffLo, stats.diffHi, stats.oddsRatio] = deal(NaN);
++    stats.significant = false;
++    return
++end
++
++stats.accA = mean(correctA);
++stats.accB = mean(correctB);
++stats.diff = stats.accB - stats.accA;
++
++% ---- Exact two-sided binomial on the discordant pairs -------------------
++b = stats.b;
++c = stats.c;
++m = stats.nDiscordant;
++
++if m == 0
++    % The systems never disagreed on a single query. There is no evidence of
++    % a difference and none against one either; p = 1 is the honest answer.
++    p = 1;
++else
++    k = min(b, c);
++    % Two-sided: double the smaller tail, capped at 1. Computed through
++    % GAMMALN so it stays exact for large m without Statistics Toolbox.
++    p = min(1, 2 * binomTailLE(k, m));
++end
++
++% ---- Interval on the paired difference ---------------------------------
++% The variance of a paired difference of proportions depends only on the
++% discordant counts: the concordant pairs contribute nothing.
++if m > 0
++    se = sqrt(m) / n;
++else
++    se = 0;
++end
++z = normQuantile(1 - alpha / 2);
++stats.diffLo = stats.diff - z * se;
++stats.diffHi = stats.diff + z * se;
++
++if b > 0
++    stats.oddsRatio = c / b;
++elseif c > 0
++    stats.oddsRatio = Inf;
++else
++    stats.oddsRatio = NaN;
++end
++
++stats.significant = p < alpha;
++
++end
++
++% =======================================================================
++function pr = binomTailLE(k, m)
++%BINOMTAILLE P(X <= k) for X ~ Binomial(m, 0.5), via log-gamma.
++
++j  = (0:k)';
++lc = gammaln(m + 1) - gammaln(j + 1) - gammaln(m - j + 1);
++pr = sum(exp(lc - m * log(2)));
++
++end
++
++% =======================================================================
++function z = normQuantile(q)
++%NORMQUANTILE Standard normal inverse CDF, from ERFCINV (base MATLAB).
++%
++%   NORMINV lives in Statistics Toolbox; the project's toolbox policy
++%   (blueprint 1.2) keeps that off the required list.
+ 
+-error('HimigTransform:NotImplemented', ...
+-    'mcnemarTest is a stub (Milestone M7). See docs/designNotes.md.');
++z = -sqrt(2) * erfcinv(2 * q);
+ 
+ end
+diff --git a/src/eval/tuneThresholds.m b/src/eval/tuneThresholds.m
+index 7d9d439..e5d7de1 100644
+--- a/src/eval/tuneThresholds.m
++++ b/src/eval/tuneThresholds.m
+@@ -1,23 +1,273 @@
+-function [tau, rho, sweep] = tuneThresholds(Rdev, Cfg)
+-%TUNETHRESHOLDS Sweep the open-set thresholds on the DEV split only.
++function [tau, rho, sweep] = tuneThresholds(Rdev, Cfg, varargin)
++%TUNETHRESHOLDS Choose the open-set thresholds on the DEV split only.
++%
++%   [TAU, RHO, SWEEP] = TUNETHRESHOLDS(RDEV, CFG) sweeps the accept rule
++%
++%       accept  iff  normScore >= tau  AND  margin >= rho
++%
++%   over a 2-D grid and returns the chosen operating point plus the whole
++%   sweep for PLOTOPENSETROC.
++%
++%   Options (name/value)
++%       'FarBudget'   max tolerable false-accept rate (default Cfg.match.farBudget
++%                     if present, else 0.01)
++%       'SnrRange'    [lo hi] dB of dev rows to tune on (default
++%                     Cfg.match.tuneSnrDb if present, else the proposal's
++%                     clean/10/5/0 envelope)
++%       'Objective'   'recallAtFar' (default) | 'f1'
+ %
+ %   THE TEST SPLIT IS TOUCHED EXACTLY ONCE, AT M7. Tuning a threshold on the
+-%   data you then report is the most common way a project like this produces
+-%   a
+-%   number it cannot defend at the panel.
++%   data you then report is the most common way a project like this produces a
++%   number it cannot defend at the panel. This function refuses any row whose
++%   split is not "dev".
++%
++%   WHY THE DEFAULT OBJECTIVE IS RECALL AT A FIXED FAR, NOT ACCURACY.
++%
++%   A music identifier's two failure modes are not equally bad. Returning "no
++%   match" costs the user a retry; confidently naming the wrong song is a
++%   wrong answer that looks right, and for the royalty-tracking use case in
++%   the proposal it is a misattributed payment. Shazam's product behaviour is
++%   the same: it would rather say nothing. So the threshold is chosen to
++%   maximise how much the system correctly identifies SUBJECT TO a false-accept
++%   budget, rather than to maximise a single blended score that would happily
++%   trade a wrong answer for two right ones.
++%
++%   Report the budget you chose. It is a design decision, not a fact about the
++%   data, and the ROC curve shows what the other choices would have bought.
++%
++%   WHY THE SNR RANGE IS RESTRICTED BY DEFAULT.
++%
++%   tau and rho are ONE global operating point applied to every query. Tuning
++%   them over a grid that runs to -25 dB optimises against queries that no
++%   configuration can identify, and the resulting threshold is then a function
++%   of how many unidentifiable cells the grid happens to contain rather than
++%   of the system. That is the same grid-composition artefact that makes
++%   pooled recall meaningless (see s06_runEvaluation).
+ %
+-%   Returns the chosen operating point plus the full sweep for the ROC
+-%   figure.
+-%   Write the chosen tau and rho back into enhancedConfig.m before M7.
++%   The default range is the operating envelope the proposal actually claims -
++%   clean, 10, 5 and 0 dB. The extended rows still get REPORTED at the chosen
++%   threshold; they are simply not allowed to choose it. Widen SnrRange if the
++%   paper claims a wider envelope, and say in the text which range was used.
+ %
+-%   Milestone: M5.  Blueprint: section(s) 8.2, 8.4.
++%   TUNE ONCE PER SYSTEM. The enhanced system emits more hashes per query, so
++%   normScore is on a different scale; reusing the baseline's tau on it is the
++%   easiest way to report a difference that is really a threshold artefact.
++%   S05_TUNETHRESHOLDS does both and writes both.
+ %
+-%   STATUS: stub. The contract above is frozen (blueprint section 5); the body
+-%   is written at the milestone named above.
++%   Milestone: M5.  Blueprint: sections 3.5, 8.2, 8.3.
+ %
+-%   See also DECIDEOPENSET, PLOTOPENSETROC.
++%   See also DECIDEOPENSET, PLOTOPENSETROC, COMPUTEMETRICS.
++
++narginchk(2, Inf);
++
++opt = parseOpts(Cfg, varargin{:});
++
++% ---- Guard the split ----------------------------------------------------
++required = {'split', 'isInDb', 'correct', 'normScore', 'margin', 'targetSnrDb'};
++missing  = setdiff(required, Rdev.Properties.VariableNames);
++if ~isempty(missing)
++    error('HimigTransform:MissingColumns', ...
++        'Rdev is missing: %s', strjoin(missing, ', '));
++end
++
++% strcmp on cellstr rather than string-array ==, so this behaves the same
++% whether split arrived as a categorical, a string array or a cell array of
++% char - which depends on how the CSV was read.
++isDev = strcmp(cellstr(string(Rdev.split)), 'dev');
++if ~all(isDev)
++    error('HimigTransform:NotDevSplit', ...
++        ['%d of %d rows are not from the dev split. Thresholds must be ' ...
++         'tuned on dev only - run s06 with s06_split = ''dev'' and pass ' ...
++         'that result here.'], nnz(~isDev), height(Rdev));
++end
++
++% ---- Restrict to the tuning envelope ------------------------------------
++inRange = Rdev.targetSnrDb >= opt.SnrRange(1) & Rdev.targetSnrDb <= opt.SnrRange(2);
++R = Rdev(inRange, :);
++
++if isempty(R)
++    error('HimigTransform:EmptyTuningSet', ...
++        'No dev rows within SnrRange [%g %g] dB.', opt.SnrRange(1), opt.SnrRange(2));
++end
++
++inDb    = logical(R.isInDb);
++correct = logical(R.correct);
++ns      = double(R.normScore);
++mg      = double(R.margin);
++
++nInDb    = nnz(inDb);
++nHoldout = nnz(~inDb);
++
++if nHoldout == 0
++    error('HimigTransform:NoHoldout', ...
++        ['No holdout queries in the tuning set, so FAR cannot be measured ' ...
++         'and an open-set threshold cannot be chosen. Check that the 20 ' ...
++         'holdout songs carry split = dev rows.']);
++end
++
++% ---- Candidate grid -----------------------------------------------------
++% tau candidates come from the observed normScore distribution rather than a
++% fixed ladder, so the grid adapts to whichever system is being tuned - the
++% enhanced system's normScore lives on a different scale.
++tauGrid = uniqueSorted([0; quantileNoStats(ns, linspace(0, 0.999, opt.NTau)')]);
++rhoGrid = opt.RhoGrid(:);
++
++nT = numel(tauGrid);
++nR = numel(rhoGrid);
++
++[tauM, rhoM] = meshgrid(tauGrid, rhoGrid);
++tauM = tauM(:);
++rhoM = rhoM(:);
++nCell = numel(tauM);
++
++tp        = zeros(nCell, 1);   % in-DB, correct, accepted
++acceptedN = zeros(nCell, 1);   % all accepted
++falseAcc  = zeros(nCell, 1);   % holdout accepted
++
++for k = 1:nCell
++    acc = (ns >= tauM(k)) & (mg >= rhoM(k));
++    tp(k)        = nnz(acc & inDb & correct);
++    acceptedN(k) = nnz(acc);
++    falseAcc(k)  = nnz(acc & ~inDb);
++end
++
++precision = tp ./ max(acceptedN, 1);
++recall    = tp ./ nInDb;
++far       = falseAcc ./ nHoldout;
++f1        = 2 * precision .* recall ./ max(precision + recall, eps);
++
++sweep = table(tauM, rhoM, precision, recall, far, f1, ...
++    tp, acceptedN, falseAcc, ...
++    'VariableNames', {'tau', 'rho', 'precision', 'recall', 'far', 'f1', ...
++                      'tp', 'nAccepted', 'nFalseAccept'});
++
++sweep.Properties.UserData = struct( ...
++    'nInDb',     nInDb, ...
++    'nHoldout',  nHoldout, ...
++    'snrRange',  opt.SnrRange, ...
++    'farBudget', opt.FarBudget, ...
++    'objective', string(opt.Objective), ...
++    'system',    resultSystem(Rdev));
++
++% ---- Choose ------------------------------------------------------------
++switch lower(opt.Objective)
++    case 'recallatfar'
++        feasible = find(far <= opt.FarBudget);
++
++        if isempty(feasible)
++            [~, best] = min(far);
++            warning('HimigTransform:FarBudgetUnreachable', ...
++                ['No (tau, rho) reaches FAR <= %.3f on dev; the lowest ' ...
++                 'achievable is %.3f. Falling back to that point. Either ' ...
++                 'raise the budget and say so in the paper, or accept that ' ...
++                 'this system cannot separate holdout from in-DB queries at ' ...
++                 'the requested rate.'], opt.FarBudget, far(best));
++        else
++            % Max recall; ties broken by precision, then by the least
++            % aggressive threshold so the operating point is not perched on
++            % the edge of a cliff in the sweep.
++            sub = sortrows([-recall(feasible), -precision(feasible), ...
++                            tauM(feasible), rhoM(feasible), feasible]);
++            best = sub(1, end);
++        end
++
++    case 'f1'
++        [~, best] = max(f1);
+ 
+-error('HimigTransform:NotImplemented', ...
+-    'tuneThresholds is a stub (Milestone M5). See docs/designNotes.md.');
++    otherwise
++        error('HimigTransform:BadObjective', ...
++            'Unknown Objective "%s" (expected recallAtFar or f1).', opt.Objective);
++end
++
++tau = tauM(best);
++rho = rhoM(best);
++
++sweep.Properties.UserData.chosenIdx = best;
++sweep.Properties.UserData.tau       = tau;
++sweep.Properties.UserData.rho       = rho;
++
++logMsg('info', ...
++    ['tuneThresholds: tau = %.4f, rho = %.2f  ->  recall %.3f, precision ' ...
++     '%.3f, FAR %.3f  (dev, %g..%g dB, n = %d in-DB / %d holdout).'], ...
++    tau, rho, recall(best), precision(best), far(best), ...
++    opt.SnrRange(1), opt.SnrRange(2), nInDb, nHoldout);
++
++end
++
++% =======================================================================
++function opt = parseOpts(Cfg, varargin)
++
++if isfield(Cfg.match, 'farBudget')
++    defFar = Cfg.match.farBudget;
++else
++    defFar = 0.01;
++end
++
++if isfield(Cfg.match, 'tuneSnrDb') && ~isempty(Cfg.match.tuneSnrDb)
++    r = Cfg.match.tuneSnrDb;
++    defRange = [min(r(~isinf(r))), Inf];
++else
++    % The proposal's declared envelope: clean, 10, 5 and 0 dB.
++    defRange = [0, Inf];
++end
++
++opt = struct( ...
++    'FarBudget', defFar, ...
++    'SnrRange',  defRange, ...
++    'Objective', 'recallAtFar', ...
++    'NTau',      120, ...
++    'RhoGrid',   [1 1.1 1.25 1.5 1.75 2 2.5 3 4 5 7 10]);
++
++for k = 1:2:numel(varargin)
++    name = varargin{k};
++    if ~isfield(opt, name)
++        error('HimigTransform:BadOption', 'Unknown option "%s".', name);
++    end
++    opt.(name) = varargin{k + 1};
++end
++
++if numel(opt.SnrRange) ~= 2 || opt.SnrRange(1) > opt.SnrRange(2)
++    error('HimigTransform:BadOption', 'SnrRange must be [lo hi] with lo <= hi.');
++end
++
++end
++
++% =======================================================================
++function v = uniqueSorted(x)
++
++v = unique(x(:));
++v = v(isfinite(v));
++
++end
++
++% =======================================================================
++function q = quantileNoStats(x, p)
++%QUANTILENOSTATS Linear-interpolated quantiles without Statistics Toolbox.
++
++x = sort(double(x(:)));
++n = numel(x);
++
++if n == 0
++    q = nan(size(p));
++    return
++end
++
++pos = max(1, min(n, p(:) * n + 0.5));
++lo  = floor(pos);
++hi  = ceil(pos);
++w   = pos - lo;
++
++q = (1 - w) .* x(lo) + w .* x(hi);
++
++end
++
++% =======================================================================
++function s = resultSystem(R)
++
++if ismember('system', R.Properties.VariableNames) && height(R) > 0
++    s = string(R.system(1));
++else
++    s = "unknown";
++end
+ 
+ end
+diff --git a/src/viz/plotOpenSetRoc.m b/src/viz/plotOpenSetRoc.m
+index 4891598..844d72d 100644
+--- a/src/viz/plotOpenSetRoc.m
++++ b/src/viz/plotOpenSetRoc.m
+@@ -1,16 +1,134 @@
+-function fig = plotOpenSetRoc(sweep, Cfg)
+-%PLOTOPENSETROC ROC / DET curve over the 20 holdout songs, with the operating point marked.
++function fig = plotOpenSetRoc(sweep, Cfg, fig)
++%PLOTOPENSETROC Operating-characteristic curve for the open-set decision.
+ %
+-%   See the blueprint sections named below for the full contract.
++%   FIG = PLOTOPENSETROC(SWEEP, CFG) draws the sweep returned by
++%   TUNETHRESHOLDS: recall against false-accept rate, with the Pareto frontier
++%   highlighted, the chosen operating point marked, and the FAR budget shown.
+ %
+-%   Milestone: M5.  Blueprint: section(s) 8.3.
++%   FIG = PLOTOPENSETROC(SWEEP, CFG, FIG) draws into an existing figure.
+ %
+-%   STATUS: stub. The contract above is frozen (blueprint section 5); the body
+-%   is written at the milestone named above.
++%   WHY THIS IS NOT A TEXTBOOK ROC. A classifier ROC sweeps ONE threshold and
++%   plots TPR against FPR. This decision has TWO thresholds - tau on normScore
++%   and rho on the top1/top2 margin - so the sweep is a cloud of points, not a
++%   curve. What matters is its upper-left frontier: for each achievable FAR,
++%   the best recall any (tau, rho) reaches. Plotting the cloud alone invites
++%   reading a dominated point as if it were on the curve.
+ %
+-%   See also TUNETHRESHOLDS.
++%   The y-axis is recall over IN-DATABASE queries and the x-axis is FAR over
++%   HOLDOUT queries - two different populations, which is exactly what open-set
++%   evaluation means. Blueprint 8.3 defines both.
++%
++%   Milestone: M5.  Blueprint: sections 8.3, 8.4.
++%
++%   See also TUNETHRESHOLDS, DECIDEOPENSET.
++
++narginchk(2, 3);
++if nargin < 3 || isempty(fig)
++    fig = figure('Color', 'w', 'Position', [100 100 780 560]);
++else
++    figure(fig);
++    clf(fig);
++end
++
++U = sweep.Properties.UserData;
++
++far    = sweep.far;
++recall = sweep.recall;
++
++ax = axes('Parent', fig);
++hold(ax, 'on');
++
++% ---- The cloud ----------------------------------------------------------
++scatter(ax, 100 * far, 100 * recall, 14, [0.75 0.78 0.85], 'filled', ...
++    'MarkerFaceAlpha', 0.55, 'DisplayName', 'all (tau, rho)');
++
++% ---- Pareto frontier ----------------------------------------------------
++frontier = paretoFrontier(far, recall);
++[~, ord] = sort(far(frontier));
++frontier = frontier(ord);
++
++plot(ax, 100 * far(frontier), 100 * recall(frontier), '-', ...
++    'LineWidth', 2, 'Color', [0.20 0.40 0.70], ...
++    'DisplayName', 'best recall at each FAR');
++
++% ---- FAR budget ---------------------------------------------------------
++if isfield(U, 'farBudget') && isfinite(U.farBudget)
++    xline(ax, 100 * U.farBudget, '--', ...
++        sprintf('FAR budget %.1f%%', 100 * U.farBudget), ...
++        'Color', [0.65 0.25 0.25], 'LineWidth', 1.2, ...
++        'LabelVerticalAlignment', 'bottom', ...
++        'DisplayName', 'FAR budget');
++end
++
++% ---- Chosen operating point --------------------------------------------
++if isfield(U, 'chosenIdx') && ~isempty(U.chosenIdx)
++    k = U.chosenIdx;
++    plot(ax, 100 * far(k), 100 * recall(k), 'p', ...
++        'MarkerSize', 17, 'MarkerFaceColor', [0.95 0.65 0.10], ...
++        'MarkerEdgeColor', [0.35 0.22 0.02], 'LineWidth', 1.1, ...
++        'DisplayName', sprintf('chosen: tau %.3f, rho %.2f', ...
++            sweep.tau(k), sweep.rho(k)));
++
++    text(ax, 100 * far(k), 100 * recall(k), ...
++        sprintf('  recall %.1f%%\n  precision %.1f%%', ...
++            100 * recall(k), 100 * sweep.precision(k)), ...
++        'VerticalAlignment', 'top', 'FontSize', 9);
++end
++
++hold(ax, 'off');
++grid(ax, 'on');
++box(ax, 'on');
++
++xlabel(ax, 'False accept rate on holdout songs (%)');
++ylabel(ax, 'Recall on in-database queries (%)');
++
++sysName = 'system';
++if isfield(U, 'system'), sysName = char(U.system); end
++
++rangeTxt = '';
++if isfield(U, 'snrRange')
++    if isinf(U.snrRange(2))
++        rangeTxt = sprintf(', tuned on %g dB and above', U.snrRange(1));
++    else
++        rangeTxt = sprintf(', tuned on %g..%g dB', U.snrRange(1), U.snrRange(2));
++    end
++end
++
++title(ax, sprintf('Open-set operating characteristic - %s%s', sysName, rangeTxt));
++
++sub = '';
++if isfield(U, 'nInDb') && isfield(U, 'nHoldout')
++    sub = sprintf('dev split: %d in-database, %d holdout queries', ...
++        U.nInDb, U.nHoldout);
++end
++if ~isempty(sub)
++    subtitle(ax, sub);
++end
++
++legend(ax, 'Location', 'southeast');
++xlim(ax, [0 max(1, 100 * max(far))]);
++ylim(ax, [0 100]);
++
++end
++
++% =======================================================================
++function idx = paretoFrontier(cost, benefit)
++%PARETOFRONTIER Points with no other point at both lower cost and higher benefit.
++
++n   = numel(cost);
++[~, ord] = sortrows([cost(:), -benefit(:)]);
++
++idx     = false(n, 1);
++bestSoFar = -Inf;
++
++for k = 1:n
++    j = ord(k);
++    if benefit(j) > bestSoFar
++        idx(j)    = true;
++        bestSoFar = benefit(j);
++    end
++end
+ 
+-error('HimigTransform:NotImplemented', ...
+-    'plotOpenSetRoc is a stub (Milestone M5). See docs/designNotes.md.');
++idx = find(idx);
+ 
+ end
+diff --git a/tests/tOpenSetTuning.m b/tests/tOpenSetTuning.m
+new file mode 100644
+index 0000000..7fe2eb6
+--- /dev/null
++++ b/tests/tOpenSetTuning.m
+@@ -0,0 +1,209 @@
++function tests = tOpenSetTuning
++%TOPENSETTUNING The M5 open-set machinery: McNemar and threshold selection.
++%
++%   These are the two pieces the paper's headline claim rests on. The 10 pp
++%   criterion is settled by a paired test, and every precision/recall/FAR
++%   number depends on where the threshold was put and on which split.
++%
++%   Milestone: M5.  Blueprint: sections 8.2, 8.3, 8.4.
++tests = functiontests(localfunctions);
++end
++
++function setupOnce(testCase)
++setupPaths();
++testCase.TestData.Cfg = baselineConfig();
++end
++
++% =======================================================================
++% McNemar
++% =======================================================================
++
++function testExactPMatchesClosedForm(testCase)
++% b = 10, c = 2, m = 12. Two-sided exact = 2 * P(X <= 2), X ~ Bin(12, 0.5)
++%                                        = 2 * (1 + 12 + 66) / 4096
++A = [true(10,1);  false(2,1); true(20,1);  false(20,1)];
++B = [false(10,1); true(2,1);  true(20,1);  false(20,1)];
++
++[p, s] = mcnemarTest(A, B);
++
++verifyEqual(testCase, s.b, 10);
++verifyEqual(testCase, s.c, 2);
++verifyEqual(testCase, p, 2 * 79 / 4096, 'AbsTol', 1e-12, ...
++    'Exact two-sided McNemar p does not match the closed form.');
++end
++
++function testConcordantPairsCarryNoInformation(testCase)
++% Adding queries both systems get right, or both get wrong, must not move p.
++% This is the property that makes the test paired, and it is easy to break by
++% accidentally using the marginal counts.
++A = [true(8,1);  false(3,1)];
++B = [false(8,1); true(3,1)];
++p1 = mcnemarTest(A, B);
++
++pad = 500;
++p2 = mcnemarTest([A; true(pad,1); false(pad,1)], ...
++                 [B; true(pad,1); false(pad,1)]);
++
++verifyEqual(testCase, p2, p1, 'AbsTol', 1e-12, ...
++    'Concordant pairs changed the p-value; the test is not paired.');
++end
++
++function testIdenticalSystemsGivePOne(testCase)
++[p, s] = mcnemarTest([true;false;true], [true;false;true]);
++verifyEqual(testCase, p, 1);
++verifyEqual(testCase, s.nDiscordant, 0);
++end
++
++function testSymmetricInItsArguments(testCase)
++rng(3, 'twister');
++A = rand(200,1) > 0.4;
++B = rand(200,1) > 0.5;
++verifyEqual(testCase, mcnemarTest(A,B), mcnemarTest(B,A), 'AbsTol', 1e-15);
++end
++
++function testLargeDiscordantCountStaysFinite(testCase)
++% The gammaln path must not overflow where a factorial-based one would.
++[p, s] = mcnemarTest([true(5000,1); false(5200,1)], ...
++                     [false(5000,1); true(5200,1)]);
++verifyEqual(testCase, s.nDiscordant, 10200);
++verifyTrue(testCase, isfinite(p) && p > 0 && p <= 1);
++end
++
++function testUnpairedInputIsRejected(testCase)
++verifyError(testCase, @() mcnemarTest(true(5,1), true(4,1)), ...
++    'HimigTransform:UnpairedInputs');
++end
++
++% =======================================================================
++% Threshold tuning
++% =======================================================================
++
++function testTestSplitRowsAreRefused(testCase)
++% The single most important guard in M5. Tuning on the data you report is
++% the failure a panel asks about.
++R = syntheticDevResults();
++R.split{7} = 'test';
++
++verifyError(testCase, @() tuneThresholds(toTable(R), testCase.TestData.Cfg), ...
++    'HimigTransform:NotDevSplit');
++end
++
++function testChosenPointRespectsTheFarBudget(testCase)
++R = toTable(syntheticDevResults());
++budget = 0.01;
++
++[~, ~, sweep] = tuneThresholds(R, testCase.TestData.Cfg, 'FarBudget', budget);
++k = sweep.Properties.UserData.chosenIdx;
++
++verifyLessThanOrEqual(testCase, sweep.far(k), budget + 1e-12, ...
++    'Chosen operating point exceeds the FAR budget.');
++verifyGreaterThan(testCase, sweep.recall(k), 0.5, ...
++    'Recall collapsed at this budget - check the sweep, not just the guard.');
++end
++
++function testFarIsMonotoneInTau(testCase)
++% Raising tau can only reject more, so FAR must never increase. If this fails
++% the sweep is not measuring what it claims.
++R = toTable(syntheticDevResults());
++[~, ~, sweep] = tuneThresholds(R, testCase.TestData.Cfg);
++
++rhoVals = unique(sweep.rho);
++sel = sweep.rho == rhoVals(1);
++[~, ord] = sort(sweep.tau(sel));
++far = sweep.far(sel);
++far = far(ord);
++
++verifyTrue(testCase, all(diff(far) <= 1e-12), ...
++    'FAR increased as tau rose at fixed rho.');
++end
++
++function testMissingHoldoutIsAnError(testCase)
++% Without holdout queries there is no FAR, so no open-set threshold can be
++% chosen. Failing loudly beats returning a threshold tuned on nothing.
++R = syntheticDevResults();
++keep = R.isInDb;
++f = fieldnames(R);
++for k = 1:numel(f)
++    R.(f{k}) = R.(f{k})(keep);
++end
++
++verifyError(testCase, @() tuneThresholds(toTable(R), testCase.TestData.Cfg), ...
++    'HimigTransform:NoHoldout');
++end
++
++function testSnrRangeRestrictsTheTuningSet(testCase)
++R = toTable(syntheticDevResults());
++
++[~, ~, wide]   = tuneThresholds(R, testCase.TestData.Cfg, 'SnrRange', [-30 Inf]);
++[~, ~, narrow] = tuneThresholds(R, testCase.TestData.Cfg, 'SnrRange', [0 Inf]);
++
++verifyGreaterThan(testCase, wide.Properties.UserData.nInDb, ...
++                            narrow.Properties.UserData.nInDb, ...
++    'SnrRange did not restrict the tuning population.');
++end
++
++% =======================================================================
++% System labelling
++% =======================================================================
++
++function testSystemConfigTiesTheLabelToTheConfig(testCase)
++B = systemConfig('baseline');
++E = systemConfig('enhanced');
++
++verifyEqual(testCase, B.tag, baselineConfig().tag);
++verifyEqual(testCase, E.tag, enhancedConfig().tag);
++verifyNotEqual(testCase, B.tag, E.tag);
++verifyEqual(testCase, B.systemName, 'baseline');
++verifyEqual(testCase, E.systemName, 'enhanced');
++
++verifyError(testCase, @() systemConfig('enhaced'), ...
++    'HimigTransform:UnknownSystem');
++end
++
++% =======================================================================
++function R = syntheticDevResults()
++%SYNTHETICDEVRESULTS Dev-shaped results with realistic separation.
++
++rng(11, 'twister');
++
++n = 2000;
++isInDb = [true(1500,1); false(500,1)];
++snr    = repmat([Inf; 10; 5; 0; -10], n/5, 1);
++
++ns   = zeros(n,1);
++mg   = zeros(n,1);
++corr = false(n,1);
++
++for k = 1:n
++    if isInDb(k)
++        switch snr(k)
++            case Inf, base = 0.30;
++            case 10,  base = 0.26;
++            case 5,   base = 0.20;
++            case 0,   base = 0.13;
++            otherwise, base = 0.03;
++        end
++        ns(k)   = max(0, base + 0.05 * randn());
++        mg(k)   = max(1, 12 * ns(k) / 0.3 + 2 * randn());
++        corr(k) = ns(k) > 0.05;
++    else
++        ns(k) = max(0, 0.012 + 0.010 * randn());
++        mg(k) = max(1, 1.8 + 0.9 * randn());
++    end
++end
++
++R = struct();
++R.split       = repmat({'dev'}, n, 1);
++R.isInDb      = isInDb;
++R.correct     = corr;
++R.normScore   = ns;
++R.margin      = mg;
++R.targetSnrDb = snr;
++R.system      = repmat({'baseline'}, n, 1);
++
++end
++
++% =======================================================================
++function T = toTable(R)
++T = struct2table(R);
++end
+-- 
+2.43.0
+

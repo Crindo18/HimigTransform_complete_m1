@@ -41,10 +41,16 @@
 %       s06_runEvaluation
 
 projRoot = setupPaths();
-Cfg      = enhancedConfig();
-rng(Cfg.seed, 'twister');
 
-if ~exist('s06_system', 'var') || isempty(s06_system), s06_system = 'enhanced'; end
+% The system NAME chooses the config. Do not hard-code one here: the name is
+% what lands in the filename, the `system` column and every downstream figure,
+% so a script pinned to one config while the name says the other produces a
+% mislabelled results file that nothing downstream can detect. See
+% SYSTEMCONFIG.
+if ~exist('s06_system', 'var') || isempty(s06_system), s06_system = 'baseline'; end
+
+Cfg = systemConfig(s06_system);
+rng(Cfg.seed, 'twister');
 if ~exist('s06_subset', 'var'),                        s06_subset = [];         end
 if ~exist('s06_split',  'var') || isempty(s06_split),  s06_split  = 'all';      end
 if ~exist('s06_parfor', 'var') || isempty(s06_parfor), s06_parfor = false;      end

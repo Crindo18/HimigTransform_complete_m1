@@ -72,4 +72,6 @@ Cfg.hash.queryDtMax  = 32;   % long queries stay in the baseline target zone
 
 Cfg.tag = makeConfigTag(Cfg);
 
+Cfg.match.tau = 0.4058;  
+Cfg.match.rho = 1.00; 
 end

@@ -27,7 +27,14 @@
 %       s03_enroll
 
 projRoot = setupPaths();
-Cfg      = enhancedConfig();
+
+% Which system to enrol. Set s03_system = 'enhanced' before running rather
+% than editing this line - an edited script is how the baseline index quietly
+% stops being rebuildable, and how a results file ends up labelled with a
+% system it was not produced by. See SYSTEMCONFIG.
+if ~exist('s03_system', 'var') || isempty(s03_system), s03_system = 'baseline'; end
+
+Cfg = systemConfig(s03_system);
 rng(Cfg.seed, 'twister');
 
 logMsg('info', '===== s03_enroll =====');
