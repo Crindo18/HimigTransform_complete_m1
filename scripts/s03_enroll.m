@@ -27,7 +27,7 @@
 %       s03_enroll
 
 projRoot = setupPaths();
-Cfg      = baselineConfig();
+Cfg      = enhancedConfig();
 rng(Cfg.seed, 'twister');
 
 logMsg('info', '===== s03_enroll =====');

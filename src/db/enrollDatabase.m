@@ -157,8 +157,14 @@ try
         error('%s is %d Hz, expected %d Hz. Re-run s01_ingest.', ...
             procPath, fsIn, Cfg.audio.fs);
     end
-
-    fp = extractFingerprint(x(:, 1), Cfg);
+   
+    extractCfg = Cfg;
+    if isfield(extractCfg, 'denoise')
+        extractCfg.denoise.enable = false; 
+    end
+    
+    fp = extractFingerprint(x(:, 1), extractCfg);
+    
     fp.meta.songID = uint16(songID);
     fp.meta.sha256 = char(sha);
 

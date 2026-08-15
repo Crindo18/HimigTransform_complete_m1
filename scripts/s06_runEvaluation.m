@@ -41,10 +41,10 @@
 %       s06_runEvaluation
 
 projRoot = setupPaths();
-Cfg      = baselineConfig();
+Cfg      = enhancedConfig();
 rng(Cfg.seed, 'twister');
 
-if ~exist('s06_system', 'var') || isempty(s06_system), s06_system = 'baseline'; end
+if ~exist('s06_system', 'var') || isempty(s06_system), s06_system = 'enhanced'; end
 if ~exist('s06_subset', 'var'),                        s06_subset = [];         end
 if ~exist('s06_split',  'var') || isempty(s06_split),  s06_split  = 'all';      end
 if ~exist('s06_parfor', 'var') || isempty(s06_parfor), s06_parfor = false;      end
