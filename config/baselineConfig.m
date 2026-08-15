@@ -37,7 +37,7 @@ Cfg.hash.queryDtMax  = [];
 
 Cfg.tag = makeConfigTag(Cfg);
 
-Cfg.match.tau = 0.4784; 
-Cfg.match.rho = 1.00; 
+Cfg.match.tau = 0.0267; 
+Cfg.match.rho = 2.00;
 
 end
