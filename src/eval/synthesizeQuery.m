@@ -87,7 +87,9 @@ if isempty(noiseFile)
         double(manifestRow.queryID), manifestRow.targetSnrDb);
 end
 
-noisePath = fullfile(setupPaths(), 'data', 'noise', noiseFile);
+% PROJECTROOT, not setupPaths: this runs once per query and setupPaths
+% re-runs addpath every time (see projectRoot's help).
+noisePath = fullfile(projectRoot(), 'data', 'noise', noiseFile);
 nFull     = readCached(noisePath, fs, cache);
 
 nStart = double(manifestRow.noiseStartSample);

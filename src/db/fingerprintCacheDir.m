@@ -22,7 +22,7 @@ if nargin < 1 || isempty(Cfg)
 end
 
 if isempty(projRoot)
-    projRoot = setupPaths();
+    projRoot = projectRoot();
 end
 
 d = fullfile(projRoot, 'db', 'fingerprints', Cfg.tag);

@@ -29,7 +29,7 @@ function absPath = resolveProcPath(procPath, procRoot)
 %   See also LOADCATALOG, ENROLLDATABASE, PICKEXCERPTSTART, SYNTHESIZEQUERY.
 
 if nargin < 2 || isempty(procRoot)
-    procRoot = fullfile(setupPaths(), 'data', 'processed');
+    procRoot = fullfile(projectRoot(), 'data', 'processed');
 end
 procRoot = char(procRoot);
 

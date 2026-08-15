@@ -180,7 +180,7 @@ function h = gitCommit()
 %GITCOMMIT Short commit hash, or "unknown" outside a repo (blueprint 6.4).
 h = "unknown";
 try
-    old = cd(setupPaths());
+    old = cd(projectRoot());
     c   = onCleanup(@() cd(old));
     [st, out] = system('git rev-parse --short HEAD');
     if st == 0

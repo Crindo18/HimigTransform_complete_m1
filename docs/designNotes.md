@@ -216,7 +216,113 @@ set as a reminder of what the tuning has to work with.
 
 ---
 
-## Pending decisions
+## 2026-08-15 — M3 review: three findings, one of them blocking
+
+### 1. BLOCKING — the enhanced system had a different peak neighbourhood
+
+The neighbourhood moved from 21x21 to 17x17 at the M2/M3 boundary. That change
+was made in `baselineConfig`. `enhancedConfig` derived separately from
+`defaultConfig`, so it silently kept 21x21.
+
+Nothing errored. The two systems simply stopped being comparable: baseline
+ceiling 27.8 peaks/s with a binding density cap, enhanced ceiling 18.2 with an
+inert one. Enhancement 1 is a claim about peak SELECTION under noise; measuring
+it against a baseline with a different peak GEOMETRY mixes the two effects and
+nothing about the enhancement could have been concluded from the result.
+
+`enhancedConfig` now derives from `baselineConfig`, so the two share every
+parameter by construction and only the enhancement lines differ. `tSystemParity`
+asserts it field by field and will fail the next time a shared parameter drifts.
+
+**If any enhanced-system index or result predates this fix, discard it.**
+
+### 2. The evaluation has no headroom at 0 dB
+
+The M3 subset run returned 100.0% top-1 in every cell, including 3 s at 0 dB.
+That is not a bug — `mixAtSNR` hits its target to 0.0000 dB, and the noise
+genuinely destroys the fingerprint: measured peak survival at 0 dB is about
+12%.
+
+It is a property of database size. A 3 s query yields a few hundred hashes; at
+1-2% hash survival a dozen still align at one offset, and against 99 rivals
+contributing one or two chance collisions each, a dozen wins outright.
+Shazam-style degradation at 0 dB is a property of a catalogue of millions,
+where chance collisions swamp a dozen true ones. At 100 songs it does not
+appear.
+
+Measured on a synthetic 40-song database, 3 s queries:
+
+| SNR | top-1 | median normScore |
+|---|---|---|
+| clean | 100% | 0.429 |
+| 0 dB | 100% | 0.343 |
+| -5 | 100% | 0.295 |
+| -10 | 97.5% | 0.215 |
+| -15 | 97.5% | 0.133 |
+| -20 | 70.0% | 0.036 |
+| -25 | 17.5% | 0.009 |
+
+The knee is near -15 to -20 dB, not 0. Real music will break earlier than this
+synthetic corpus, but the project's own 100-song run already shows 100% at
+0 dB, so the knee is definitely below zero.
+
+**What this breaks.** Success criterion 1 — "at least a 10-percentage-point
+accuracy gain over the baseline at 0 dB SNR" — is unreachable against a
+baseline at 100.0%, however good the enhancements are. The enhancements are not
+on trial; the operating point is.
+
+**Two responses, not exclusive.**
+
+*Move the grid.* Extend `Cfg.eval.snrDb` below 0 until the systems have
+somewhere to separate. Keep the proposal's clean/10/5/0 row and report it as
+measured — a saturated baseline on a 100-song database is a real result and
+belongs in the paper, with the database-size explanation beside it.
+
+*Change the dependent variable.* `normScore` falls monotonically long before
+accuracy moves: 20% down by 0 dB while top-1 is still flat. It is the headroom
+the decision has left, it is exactly what Enhancement 1 protects, and it is
+measurable at the SNRs the proposal names. "Accuracy saturates on a database
+this size; the enhanced system carries N times the decision margin at 0 dB" is
+defensible at the proposal's own operating point.
+
+`computeMetrics` now reports `normScoreMedian`, `normScoreP05`, `marginMedian`
+and `marginMin` alongside the accuracy columns. `s06b_findKnee` runs the sweep
+on the real corpus.
+
+**Do this before the full M7 grid, not after.**
+
+### 3. The evaluation was spending its whole runtime in `addpath`
+
+`synthesizeQuery` called `setupPaths()` twice per query — once directly for the
+noise path, once through `resolveProcPath`. `setupPaths` runs `addpath` over
+`genpath(src)` plus nine `isfolder` checks on every call, and `addpath` also
+invalidates MATLAB's function lookup cache, so the cost is not just the call but
+every function resolution afterwards.
+
+Measured: 2,000 `setupPaths` calls take 46.7 s; 2,000 `projectRoot` calls take
+0.011 s. **4,300x.** That is consistent with the subset run's 0.373 s per query
+against a 0.0069 s median match time — 98% of the wall clock was path
+management.
+
+New `projectRoot()` memoises the root in a `persistent` and touches nothing
+else. Every hot path now uses it. `setupPaths` keeps its one job: session setup.
+
+---
+
+## Pending — revised priority
+
+| | Question | When |
+|---|---|---|
+| 1 | **Where to put the SNR grid** — run `s06b_findKnee` | before the full M7 run |
+| 2 | **Whether to report normScore as a primary measure** | with (1) |
+| 3 | Rebuild any enhanced index built before the neighbourhood fix | immediately |
+| 4 | `freqDecim` = 1 or 2 | M4 ablation |
+| 5 | Turn pruning on | inert at the default; needs accuracy + time measurement |
+| 6 | Gate `margin` behind a minimum absolute score | M5 |
+
+---
+
+## Pending decisions (superseded by the table above)
 
 These are open. Resolve at the milestone named.
 

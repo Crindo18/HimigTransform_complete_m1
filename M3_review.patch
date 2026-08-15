@@ -1,0 +1,779 @@
+From 5aee8e535490abc699e157df6ba268cae47b205e Mon Sep 17 00:00:00 2001
+From: Crindo18 <chrisjohnalado@gmail.com>
+Date: Sat, 15 Aug 2026 02:36:27 +0000
+Subject: [PATCH] M3 review: fix a system-comparison confound, remove the
+ runtime bottleneck
+
+BLOCKING: enhancedConfig derived from defaultConfig, so it kept the 21x21
+peak neighbourhood after baselineConfig moved to 17x17. The two systems
+were about to be compared with different peak geometry - baseline ceiling
+27.8 peaks/s with a binding density cap, enhanced 18.2 with an inert one.
+Enhancement 1 is a claim about peak SELECTION; measuring it against a
+different peak NEIGHBOURHOOD confounds the two and nothing could have been
+concluded. enhancedConfig now derives from baselineConfig; new
+tSystemParity asserts every shared field. Discard any enhanced index or
+result built before this.
+
+Runtime: synthesizeQuery called setupPaths() twice per query (directly for
+the noise path, and via resolveProcPath). setupPaths runs addpath over
+genpath(src) every time and invalidates MATLAB's function cache. Measured
+4,300x slower than needed - 2000 calls take 46.7 s vs 0.011 s. That is
+98% of the subset run's wall clock (0.373 s/query against a 0.0069 s
+median match time). New projectRoot() memoises the root; every hot path
+uses it.
+
+Headroom: computeMetrics now reports normScoreMedian, normScoreP05,
+marginMedian and marginMin. New s06b_findKnee sweeps SNR below 0 dB to
+locate where the baseline actually degrades - the M3 subset returned
+100.0% in every cell including 3 s at 0 dB, which leaves success
+criterion 1 (a 10 pp gain at 0 dB) unreachable. Not a bug: peak survival
+at 0 dB is ~12%, but a dozen surviving hashes still beat 99 rivals on a
+100-song database. Analysis and options in docs/designNotes.md.
+---
+ config/enhancedConfig.m      |  19 ++-
+ docs/designNotes.md          | 108 +++++++++++++++-
+ projectRoot.m                |  37 ++++++
+ scripts/s06b_findKnee.m      | 236 +++++++++++++++++++++++++++++++++++
+ src/db/fingerprintCacheDir.m |   2 +-
+ src/eval/computeMetrics.m    |  47 ++++++-
+ src/eval/runExperiment.m     |   2 +-
+ src/eval/synthesizeQuery.m   |   4 +-
+ src/io/buildCatalog.m        |   2 +-
+ src/io/loadCatalog.m         |   2 +-
+ src/io/resolveProcPath.m     |   2 +-
+ tests/tSystemParity.m        | 106 ++++++++++++++++
+ 12 files changed, 558 insertions(+), 9 deletions(-)
+ create mode 100644 projectRoot.m
+ create mode 100644 scripts/s06b_findKnee.m
+ create mode 100644 tests/tSystemParity.m
+
+diff --git a/config/enhancedConfig.m b/config/enhancedConfig.m
+index 1120393..cde0133 100644
+--- a/config/enhancedConfig.m
++++ b/config/enhancedConfig.m
+@@ -27,8 +27,9 @@ function Cfg = enhancedConfig()
+ %
+ %   Blueprint: sections 0 (D4), 3.3, 3.4, 3.6, 7 (M4-M5), 8.2.
+ 
+-Cfg = defaultConfig();
++Cfg = baselineConfig();
+ 
++% Re-label: the tag must not claim to be the baseline.
+ Cfg.name = 'enh';
+ 
+ % --- Enhancement 1a: query-side spectral subtraction -----------------
+@@ -38,6 +39,22 @@ function Cfg = enhancedConfig()
+ Cfg.denoise.noiseFrameFrac = 0.10;
+ 
+ % --- Enhancement 1b: SNR-adaptive peak picking -----------------------
++% --- Shared with the baseline: everything the enhancements do NOT change ---
++% The peak neighbourhood was moved from 21x21 to 17x17 at the M2/M3 boundary
++% (docs/designNotes.md), and that change was made in BASELINECONFIG only.
++% Both files derive from DEFAULTCONFIG, so the enhanced system silently kept
++% 21x21 - a different peak geometry from the system it is supposed to be
++% compared against.
++%
++% That is a confound, not a detail. Enhancement 1 is a claim about peak
++% SELECTION under noise; measuring it against a baseline with a different peak
++% NEIGHBOURHOOD means any difference mixes the two effects and nothing about
++% the enhancement can be concluded from it.
++%
++% Inheriting from BASELINECONFIG rather than DEFAULTCONFIG makes the two
++% systems share every parameter by construction, so the only differences are
++% the ones written below. tSystemParity asserts it.
++
+ Cfg.peaks.mode    = 'adaptive';
+ Cfg.peaks.kappaDb = 6;               % TUNE ON DEV (M4)
+ 
+diff --git a/docs/designNotes.md b/docs/designNotes.md
+index e041f36..b2060ab 100644
+--- a/docs/designNotes.md
++++ b/docs/designNotes.md
+@@ -216,7 +216,113 @@ set as a reminder of what the tuning has to work with.
+ 
+ ---
+ 
+-## Pending decisions
++## 2026-08-15 — M3 review: three findings, one of them blocking
++
++### 1. BLOCKING — the enhanced system had a different peak neighbourhood
++
++The neighbourhood moved from 21x21 to 17x17 at the M2/M3 boundary. That change
++was made in `baselineConfig`. `enhancedConfig` derived separately from
++`defaultConfig`, so it silently kept 21x21.
++
++Nothing errored. The two systems simply stopped being comparable: baseline
++ceiling 27.8 peaks/s with a binding density cap, enhanced ceiling 18.2 with an
++inert one. Enhancement 1 is a claim about peak SELECTION under noise; measuring
++it against a baseline with a different peak GEOMETRY mixes the two effects and
++nothing about the enhancement could have been concluded from the result.
++
++`enhancedConfig` now derives from `baselineConfig`, so the two share every
++parameter by construction and only the enhancement lines differ. `tSystemParity`
++asserts it field by field and will fail the next time a shared parameter drifts.
++
++**If any enhanced-system index or result predates this fix, discard it.**
++
++### 2. The evaluation has no headroom at 0 dB
++
++The M3 subset run returned 100.0% top-1 in every cell, including 3 s at 0 dB.
++That is not a bug — `mixAtSNR` hits its target to 0.0000 dB, and the noise
++genuinely destroys the fingerprint: measured peak survival at 0 dB is about
++12%.
++
++It is a property of database size. A 3 s query yields a few hundred hashes; at
++1-2% hash survival a dozen still align at one offset, and against 99 rivals
++contributing one or two chance collisions each, a dozen wins outright.
++Shazam-style degradation at 0 dB is a property of a catalogue of millions,
++where chance collisions swamp a dozen true ones. At 100 songs it does not
++appear.
++
++Measured on a synthetic 40-song database, 3 s queries:
++
++| SNR | top-1 | median normScore |
++|---|---|---|
++| clean | 100% | 0.429 |
++| 0 dB | 100% | 0.343 |
++| -5 | 100% | 0.295 |
++| -10 | 97.5% | 0.215 |
++| -15 | 97.5% | 0.133 |
++| -20 | 70.0% | 0.036 |
++| -25 | 17.5% | 0.009 |
++
++The knee is near -15 to -20 dB, not 0. Real music will break earlier than this
++synthetic corpus, but the project's own 100-song run already shows 100% at
++0 dB, so the knee is definitely below zero.
++
++**What this breaks.** Success criterion 1 — "at least a 10-percentage-point
++accuracy gain over the baseline at 0 dB SNR" — is unreachable against a
++baseline at 100.0%, however good the enhancements are. The enhancements are not
++on trial; the operating point is.
++
++**Two responses, not exclusive.**
++
++*Move the grid.* Extend `Cfg.eval.snrDb` below 0 until the systems have
++somewhere to separate. Keep the proposal's clean/10/5/0 row and report it as
++measured — a saturated baseline on a 100-song database is a real result and
++belongs in the paper, with the database-size explanation beside it.
++
++*Change the dependent variable.* `normScore` falls monotonically long before
++accuracy moves: 20% down by 0 dB while top-1 is still flat. It is the headroom
++the decision has left, it is exactly what Enhancement 1 protects, and it is
++measurable at the SNRs the proposal names. "Accuracy saturates on a database
++this size; the enhanced system carries N times the decision margin at 0 dB" is
++defensible at the proposal's own operating point.
++
++`computeMetrics` now reports `normScoreMedian`, `normScoreP05`, `marginMedian`
++and `marginMin` alongside the accuracy columns. `s06b_findKnee` runs the sweep
++on the real corpus.
++
++**Do this before the full M7 grid, not after.**
++
++### 3. The evaluation was spending its whole runtime in `addpath`
++
++`synthesizeQuery` called `setupPaths()` twice per query — once directly for the
++noise path, once through `resolveProcPath`. `setupPaths` runs `addpath` over
++`genpath(src)` plus nine `isfolder` checks on every call, and `addpath` also
++invalidates MATLAB's function lookup cache, so the cost is not just the call but
++every function resolution afterwards.
++
++Measured: 2,000 `setupPaths` calls take 46.7 s; 2,000 `projectRoot` calls take
++0.011 s. **4,300x.** That is consistent with the subset run's 0.373 s per query
++against a 0.0069 s median match time — 98% of the wall clock was path
++management.
++
++New `projectRoot()` memoises the root in a `persistent` and touches nothing
++else. Every hot path now uses it. `setupPaths` keeps its one job: session setup.
++
++---
++
++## Pending — revised priority
++
++| | Question | When |
++|---|---|---|
++| 1 | **Where to put the SNR grid** — run `s06b_findKnee` | before the full M7 run |
++| 2 | **Whether to report normScore as a primary measure** | with (1) |
++| 3 | Rebuild any enhanced index built before the neighbourhood fix | immediately |
++| 4 | `freqDecim` = 1 or 2 | M4 ablation |
++| 5 | Turn pruning on | inert at the default; needs accuracy + time measurement |
++| 6 | Gate `margin` behind a minimum absolute score | M5 |
++
++---
++
++## Pending decisions (superseded by the table above)
+ 
+ These are open. Resolve at the milestone named.
+ 
+diff --git a/projectRoot.m b/projectRoot.m
+new file mode 100644
+index 0000000..fbc613b
+--- /dev/null
++++ b/projectRoot.m
+@@ -0,0 +1,37 @@
++function root = projectRoot()
++%PROJECTROOT Absolute path to the HimigTransform root. Cheap and memoised.
++%
++%   ROOT = PROJECTROOT() returns the project root without touching the MATLAB
++%   search path and without creating any folders.
++%
++%   USE THIS, NOT SETUPPATHS(), ANYWHERE ON A HOT PATH.
++%
++%   SETUPPATHS does real work on every call: ADDPATH over GENPATH of src/,
++%   plus nine ISFOLDER checks and any MKDIR they trigger. ADDPATH also
++%   invalidates MATLAB's function lookup cache, so the cost is not just the
++%   call - it is every function resolution afterwards.
++%
++%   That is fine once per session, which is what it was written for. It is not
++%   fine per query. SYNTHESIZEQUERY reached it twice per call (once directly
++%   for the noise path, once through RESOLVEPROCPATH), so a 17,280-query
++%   evaluation made roughly 35,000 ADDPATH calls and spent almost all of its
++%   wall clock there: the M3 subset run measured 0.373 s per query against a
++%   median match time of 0.0069 s.
++%
++%   The result is cached in a PERSISTENT after the first call. The root cannot
++%   move during a session - it is derived from this file's own location - so
++%   there is nothing to invalidate.
++%
++%   Milestone: M3.  Blueprint: section 6.3.
++%
++%   See also SETUPPATHS.
++
++persistent cachedRoot
++
++if isempty(cachedRoot)
++    cachedRoot = fileparts(mfilename('fullpath'));
++end
++
++root = cachedRoot;
++
++end
+diff --git a/scripts/s06b_findKnee.m b/scripts/s06b_findKnee.m
+new file mode 100644
+index 0000000..31476bf
+--- /dev/null
++++ b/scripts/s06b_findKnee.m
+@@ -0,0 +1,236 @@
++%S06B_FINDKNEE  Locate the SNR at which the baseline actually degrades.
++%
++%   Sweeps SNR well below the proposal's 0 dB floor on a small sample of real
++%   songs and reports top-1 accuracy AND the decision statistics at each
++%   point. Run it before committing to the full M7 grid.
++%
++%   WHY. The M3 subset run returned 100.0% top-1 in every cell of the grid,
++%   including 3 s queries at 0 dB. That is not a bug - mixAtSNR hits its
++%   target to 0.0000 dB and the noise genuinely destroys most of the
++%   fingerprint (peak survival at 0 dB measures around 12%). It is a
++%   PROPERTY OF THE DATABASE SIZE. A 3 s query yields a few hundred hashes,
++%   and even a 1-2% hash survival rate leaves a dozen or more that align at
++%   one offset. Against 100 songs, a dozen aligned hashes wins outright,
++%   because the 99 rivals contribute only one or two chance collisions at any
++%   single offset. Shazam-style degradation at 0 dB is a property of a
++%   catalogue of millions, where chance collisions swamp a dozen true ones.
++%
++%   WHAT THIS BREAKS. Success criterion 1 is "at least a 10-percentage-point
++%   accuracy gain over the baseline at 0 dB SNR". A baseline at 100.0% has
++%   zero headroom, so the criterion is unreachable no matter how good the
++%   enhancements are. The enhancements are not on trial here; the operating
++%   point is.
++%
++%   WHAT TO DO WITH THE OUTPUT. Two usable answers, and they are not
++%   exclusive:
++%
++%     1. MOVE THE GRID. Find where accuracy leaves the ceiling and put the
++%        evaluation there. Report the proposal's clean/10/5/0 dB row as
++%        measured - a saturated baseline is a real result and belongs in the
++%        paper - then extend downward to where the systems separate.
++%
++%     2. CHANGE THE DEPENDENT VARIABLE. normScore falls monotonically long
++%        before accuracy moves: it drops measurably by 0 dB while top-1 is
++%        still flat at 100%. It is the fingerprint's signal-to-noise margin,
++%        it is exactly what Enhancement 1 is designed to protect, and it is
++%        measurable at the SNRs the proposal specifies. Reporting "accuracy
++%        saturates; the enhanced system carries N times the decision margin
++%        at 0 dB" is a defensible, honest result at the operating point the
++%        proposal named.
++%
++%   Writes results/tables/kneeProbe.csv.
++%
++%   Milestone: M3.  Blueprint: sections 8.1, 9 (R4), 12.
++%
++%   See also S06_RUNEVALUATION, BUILDQUERYMANIFEST, MIXATSNR.
++
++projRoot = setupPaths();
++Cfg      = baselineConfig();
++rng(Cfg.seed, 'twister');
++
++logMsg('info', '===== s06b_findKnee =====');
++
++% ---- Knobs --------------------------------------------------------------
++snrGrid    = [Inf 10 5 0 -5 -10 -15 -20 -25];
++lengthsSec = [3 10];        % 3 s is the hardest case, 10 s the proposal's easiest
++nSongs     = 15;            % sample, not the full catalogue - this is a probe
++repsPerSong = 2;
++noiseTypes = {'cafe', 'traffic', 'crowd'};
++
++% ---- Load ---------------------------------------------------------------
++catalog = loadCatalog(Cfg);
++dbRows  = catalog(catalog.role == 'db', :);
++
++indexPath = fullfile(projRoot, 'db', sprintf('index_%s.mat', Cfg.tag));
++if ~isfile(indexPath)
++    error('HimigTransform:NoIndex', ...
++        'No index at %s. Run s03_enroll first.', indexPath);
++end
++S   = load(indexPath);
++Idx = S.Idx;
++
++noiseBank = loadNoiseBank(Cfg);
++
++% Spread the sample across the catalogue rather than taking the first N, so
++% both repertoires are represented.
++pick    = round(linspace(1, height(dbRows), min(nSongs, height(dbRows))));
++songIDs = double(dbRows.songID(pick));
++
++logMsg('info', 'Probe: %d song(s) x %d length(s) x %d SNR(s) x %d noise x %d rep(s) = %d queries.', ...
++    numel(songIDs), numel(lengthsSec), numel(snrGrid), numel(noiseTypes), ...
++    repsPerSong, numel(songIDs) * numel(lengthsSec) * numel(snrGrid) * ...
++    numel(noiseTypes) * repsPerSong);
++
++cache = containers.Map('KeyType', 'char', 'ValueType', 'any');
++rows  = {};
++
++tAll = tic;
++
++for li = 1:numel(lengthsSec)
++    lenSec = lengthsSec(li);
++
++    for si = 1:numel(snrGrid)
++        snr = snrGrid(si);
++
++        if isinf(snr) && snr > 0
++            theseNoise = {''};        % clean has no noise type
++        else
++            theseNoise = noiseTypes;
++        end
++
++        nCorrect = 0; nTotal = 0;
++        normScores = []; margins = []; scores = []; nHashes = [];
++
++        for ni = 1:numel(theseNoise)
++            for k = 1:numel(songIDs)
++                id  = songIDs(k);
++                row = catalog(catalog.songID == id, :);
++
++                procFile = fullfile(projRoot, 'data', 'processed', ...
++                    strrep(char(row.procPath), '/', filesep));
++
++                if isKey(cache, procFile)
++                    x = cache(procFile);
++                else
++                    x = double(audioread(procFile));
++                    x = x(:, 1);
++                    cache(procFile) = x;
++                end
++
++                lenSamp = round(lenSec * Cfg.audio.fs);
++
++                for rep = 1:repsPerSong
++                    % Deterministic excerpt, spread through the track.
++                    frac = 0.25 + 0.5 * (rep - 1) / max(repsPerSong - 1, 1);
++                    s0   = max(1, min(round(frac * numel(x)), numel(x) - lenSamp));
++                    q    = x(s0 : s0 + lenSamp - 1);
++
++                    if isinf(snr) && snr > 0
++                        y = q;
++                    else
++                        nRow = noiseBank(noiseBank.noiseType == theseNoise{ni}, :);
++                        nPath = fullfile(projRoot, 'data', 'noise', char(nRow.file(1)));
++
++                        if isKey(cache, nPath)
++                            nAll = cache(nPath);
++                        else
++                            nAll = double(audioread(nPath));
++                            nAll = nAll(:, 1);
++                            cache(nPath) = nAll;
++                        end
++
++                        nStart = 1 + mod((k * 7919 + rep * 104729), ...
++                                         max(numel(nAll) - lenSamp - 1, 1));
++                        y = mixAtSNR(q, nAll(nStart : nStart + lenSamp - 1), snr);
++                    end
++
++                    res = identifyQuery(y, Idx, Cfg);
++
++                    nTotal   = nTotal + 1;
++                    nCorrect = nCorrect + (res.pred1 == id);
++                    normScores(end+1) = res.normScore;   %#ok<SAGROW>
++                    margins(end+1)    = res.margin;      %#ok<SAGROW>
++                    scores(end+1)     = res.score1;      %#ok<SAGROW>
++                    nHashes(end+1)    = res.nQueryHashes;%#ok<SAGROW>
++                end
++            end
++        end
++
++        acc = nCorrect / max(nTotal, 1);
++        [lo, hi] = wilsonInterval(nCorrect, nTotal);
++
++        rows{end+1} = struct( ...
++            'lengthSec',        lenSec, ...
++            'snrDb',            snr, ...
++            'n',                nTotal, ...
++            'top1',             acc, ...
++            'ciLo',             lo, ...
++            'ciHi',             hi, ...
++            'medNormScore',     median(normScores), ...
++            'medMargin',        median(margins), ...
++            'minMargin',        min(margins), ...
++            'medScore1',        median(scores), ...
++            'medQueryHashes',   median(nHashes));   %#ok<SAGROW>
++
++        logMsg('info', '  %2.0f s @ %5.0f dB: top-1 %.1f%% (n=%d), normScore %.4f', ...
++            lenSec, snr, 100 * acc, nTotal, median(normScores));
++    end
++end
++
++T = struct2table([rows{:}]);
++
++% ---- Report -------------------------------------------------------------
++for li = 1:numel(lengthsSec)
++    lenSec = lengthsSec(li);
++    sub = T(T.lengthSec == lenSec, :);
++
++    fprintf('\n--- %g s queries ---\n', lenSec);
++    fprintf('%6s %9s %18s %12s %10s %9s\n', ...
++        'SNR', 'top-1', 'Wilson 95%', 'normScore', 'margin', 'hashes');
++    for ii = 1:height(sub)
++        fprintf('%6.0f %8.1f%% %8.1f - %5.1f %12.4f %10.1f %9.0f\n', ...
++            sub.snrDb(ii), 100 * sub.top1(ii), ...
++            100 * sub.ciLo(ii), 100 * sub.ciHi(ii), ...
++            sub.medNormScore(ii), sub.medMargin(ii), sub.medQueryHashes(ii));
++    end
++end
++
++% ---- Where is the knee? -------------------------------------------------
++fprintf('\n--- Knee ---\n');
++for li = 1:numel(lengthsSec)
++    lenSec = lengthsSec(li);
++    sub    = T(T.lengthSec == lenSec, :);
++    finite = sub(~isinf(sub.snrDb), :);
++
++    below = finite(finite.top1 < 0.95, :);
++    if isempty(below)
++        fprintf('  %g s: still >= 95%% at %g dB - the sweep did not reach the knee.\n', ...
++            lenSec, min(finite.snrDb));
++    else
++        fprintf('  %g s: first drops below 95%% at %g dB.\n', ...
++            lenSec, max(below.snrDb));
++    end
++
++    cleanNs = sub.medNormScore(isinf(sub.snrDb));
++    at0     = sub.medNormScore(sub.snrDb == 0);
++    if ~isempty(cleanNs) && ~isempty(at0)
++        fprintf('       normScore at 0 dB is %.0f%% of clean - degradation IS\n', ...
++            100 * at0 / cleanNs);
++        fprintf('       measurable at 0 dB even where accuracy is not.\n');
++    end
++end
++
++outDir = fullfile(projRoot, 'results', 'tables');
++if ~isfolder(outDir), mkdir(outDir); end
++outPath = fullfile(outDir, 'kneeProbe.csv');
++writetable(T, outPath);
++
++fprintf('\nWritten to %s  (%.1f s)\n', outPath, toc(tAll));
++fprintf(['\nDECIDE FROM THIS, THEN RUN THE FULL GRID:\n' ...
++         '  - If accuracy only breaks well below 0 dB, extend Cfg.eval.snrDb\n' ...
++         '    downward so the systems have somewhere to separate. Keep the\n' ...
++         '    proposal''s clean/10/5/0 row: a saturated baseline is a result.\n' ...
++         '  - Either way, add normScore as a reported measure. It degrades at\n' ...
++         '    0 dB where accuracy does not, and it is what Enhancement 1\n' ...
++         '    protects.\n' ...
++         '  - Re-run s04_buildQueries after changing the SNR grid.\n']);
+diff --git a/src/db/fingerprintCacheDir.m b/src/db/fingerprintCacheDir.m
+index b94d5d1..149789b 100644
+--- a/src/db/fingerprintCacheDir.m
++++ b/src/db/fingerprintCacheDir.m
+@@ -22,7 +22,7 @@ function d = fingerprintCacheDir(Cfg)
+ end
+ 
+ if isempty(projRoot)
+-    projRoot = setupPaths();
++    projRoot = projectRoot();
+ end
+ 
+ d = fullfile(projRoot, 'db', 'fingerprints', Cfg.tag);
+diff --git a/src/eval/computeMetrics.m b/src/eval/computeMetrics.m
+index 5f9466e..a139585 100644
+--- a/src/eval/computeMetrics.m
++++ b/src/eval/computeMetrics.m
+@@ -57,7 +57,7 @@ function T = computeMetrics(R, groupVars, alpha)
+         'Results table has no column(s): %s', strjoin(missingCols, ', '));
+ end
+ 
+-required = {'isInDb', 'correct', 'accepted'};
++required = {'isInDb', 'correct', 'accepted', 'normScore', 'margin'};
+ missingCols = setdiff(required, R.Properties.VariableNames);
+ if ~isempty(missingCols)
+     error('HimigTransform:BadResultsTable', ...
+@@ -81,6 +81,11 @@ function T = computeMetrics(R, groupVars, alpha)
+ tTotalMedian = nan(nG, 1);
+ tTotalP95    = nan(nG, 1);
+ 
++normScoreMedian = nan(nG, 1);
++normScoreP05    = nan(nG, 1);
++marginMedian    = nan(nG, 1);
++marginMin       = nan(nG, 1);
++
+ hasTiming = all(ismember({'tMatchSec', 'tTotalSec'}, R.Properties.VariableNames));
+ hasWarmup = ismember('warmup', R.Properties.VariableNames);
+ 
+@@ -99,6 +104,26 @@ function T = computeMetrics(R, groupVars, alpha)
+     nCorrAcc(g)  = nnz(inDb & R.correct & R.accepted);
+     nHoldAcc(g)  = nnz(holdout & R.accepted);
+ 
++    % ---- Decision margin, over in-DB queries only -----------------------
++    % normScore degrades continuously where accuracy saturates. On a
++    % 100-song database a 3 s query at 0 dB still identifies correctly
++    % essentially always, because a dozen surviving hashes beat 99 rivals
++    % contributing one or two chance collisions each - so top-1 stays at
++    % 100% while the fingerprint is in fact being destroyed (peak survival
++    % at 0 dB measures around 12%).
++    %
++    % That makes accuracy the wrong dependent variable at this database
++    % size, and normScore the right one: it is the headroom the decision
++    % has left, it is precisely what Enhancement 1 protects, and it is
++    % measurable at the SNRs the proposal names. Reported here so the
++    % effect can be quoted even from a saturated accuracy table.
++    if any(inDb)
++        normScoreMedian(g) = median(R.normScore(inDb));
++        normScoreP05(g)    = prctile05(R.normScore(inDb));
++        marginMedian(g)    = median(R.margin(inDb));
++        marginMin(g)       = min(R.margin(inDb));
++    end
++
+     if hasTiming
+         if hasWarmup
+             tm = m & ~R.warmup;
+@@ -135,6 +160,11 @@ function T = computeMetrics(R, groupVars, alpha)
+ T.recall            = rcP;  T.recallLo         = rcLo;  T.recallHi         = rcHi;
+ T.far               = faP;  T.farLo            = faLo;  T.farHi            = faHi;
+ 
++T.normScoreMedian = normScoreMedian;
++T.normScoreP05    = normScoreP05;
++T.marginMedian    = marginMedian;
++T.marginMin       = marginMin;
++
+ T.tMatchMedian = tMatchMedian;
+ T.tMatchP95    = tMatchP95;
+ T.tTotalMedian = tTotalMedian;
+@@ -146,6 +176,8 @@ function T = computeMetrics(R, groupVars, alpha)
+                'precision', 'precisionLo', 'precisionHi', ...
+                'recall', 'recallLo', 'recallHi', ...
+                'far', 'farLo', 'farHi', ...
++               'normScoreMedian', 'normScoreP05', ...
++               'marginMedian', 'marginMin', ...
+                'tMatchMedian', 'tMatchP95', 'tTotalMedian', 'tTotalP95'};
+ T = T(:, [groupVars, {'nQueries', 'nInDb', 'nHoldout', 'nAccepted'}, metricOrder]);
+ 
+@@ -157,6 +189,19 @@ function T = computeMetrics(R, groupVars, alpha)
+ 
+ end
+ 
++% =======================================================================
++function v = prctile05(x)
++%PRCTILE05 5th percentile without Statistics Toolbox. Mirrors PRCTILE95.
++
++x = sort(x(:));
++if isempty(x)
++    v = NaN;
++    return
++end
++v = x(max(1, ceil(0.05 * numel(x))));
++
++end
++
+ % =======================================================================
+ function v = prctile95(x)
+ %PRCTILE95 95th percentile without the Statistics Toolbox (blueprint 1.2).
+diff --git a/src/eval/runExperiment.m b/src/eval/runExperiment.m
+index a769211..ac77fad 100644
+--- a/src/eval/runExperiment.m
++++ b/src/eval/runExperiment.m
+@@ -180,7 +180,7 @@ function h = gitCommit()
+ %GITCOMMIT Short commit hash, or "unknown" outside a repo (blueprint 6.4).
+ h = "unknown";
+ try
+-    old = cd(setupPaths());
++    old = cd(projectRoot());
+     c   = onCleanup(@() cd(old));
+     [st, out] = system('git rev-parse --short HEAD');
+     if st == 0
+diff --git a/src/eval/synthesizeQuery.m b/src/eval/synthesizeQuery.m
+index b38b0e9..f2b4a39 100644
+--- a/src/eval/synthesizeQuery.m
++++ b/src/eval/synthesizeQuery.m
+@@ -87,7 +87,9 @@ function [y, meas] = synthesizeQuery(manifestRow, catalog, Cfg, cache)
+         double(manifestRow.queryID), manifestRow.targetSnrDb);
+ end
+ 
+-noisePath = fullfile(setupPaths(), 'data', 'noise', noiseFile);
++% PROJECTROOT, not setupPaths: this runs once per query and setupPaths
++% re-runs addpath every time (see projectRoot's help).
++noisePath = fullfile(projectRoot(), 'data', 'noise', noiseFile);
+ nFull     = readCached(noisePath, fs, cache);
+ 
+ nStart = double(manifestRow.noiseStartSample);
+diff --git a/src/io/buildCatalog.m b/src/io/buildCatalog.m
+index a6cef08..364d177 100644
+--- a/src/io/buildCatalog.m
++++ b/src/io/buildCatalog.m
+@@ -40,7 +40,7 @@ function catalog = buildCatalog(fileList, Cfg, catalogPath)
+ %   See also INGESTLIBRARY, LOADCATALOG, CATALOGSCHEMA.
+ 
+ if nargin < 3 || isempty(catalogPath)
+-    catalogPath = fullfile(setupPaths(), 'db', 'catalog.csv');
++    catalogPath = fullfile(projectRoot(), 'db', 'catalog.csv');
+ end
+ catalogPath = char(catalogPath);
+ 
+diff --git a/src/io/loadCatalog.m b/src/io/loadCatalog.m
+index 4ec2208..892e236 100644
+--- a/src/io/loadCatalog.m
++++ b/src/io/loadCatalog.m
+@@ -27,7 +27,7 @@ function catalog = loadCatalog(Cfg, catalogPath)
+ end
+ 
+ if nargin < 2 || isempty(catalogPath)
+-    catalogPath = fullfile(setupPaths(), 'db', 'catalog.csv');
++    catalogPath = fullfile(projectRoot(), 'db', 'catalog.csv');
+ end
+ catalogPath = char(catalogPath);
+ 
+diff --git a/src/io/resolveProcPath.m b/src/io/resolveProcPath.m
+index 3a3ccc0..b2966d0 100644
+--- a/src/io/resolveProcPath.m
++++ b/src/io/resolveProcPath.m
+@@ -29,7 +29,7 @@ function absPath = resolveProcPath(procPath, procRoot)
+ %   See also LOADCATALOG, ENROLLDATABASE, PICKEXCERPTSTART, SYNTHESIZEQUERY.
+ 
+ if nargin < 2 || isempty(procRoot)
+-    procRoot = fullfile(setupPaths(), 'data', 'processed');
++    procRoot = fullfile(projectRoot(), 'data', 'processed');
+ end
+ procRoot = char(procRoot);
+ 
+diff --git a/tests/tSystemParity.m b/tests/tSystemParity.m
+new file mode 100644
+index 0000000..3d15b41
+--- /dev/null
++++ b/tests/tSystemParity.m
+@@ -0,0 +1,106 @@
++function tests = tSystemParity
++%TSYSTEMPARITY The two systems must differ ONLY by the enhancements.
++%
++%   Enhancement 1 is a claim about peak SELECTION under noise and Enhancement
++%   2 a claim about hash FAN-OUT on short queries. Both are measured as a
++%   difference between two full systems, so every parameter that is not part
++%   of an enhancement has to be identical. If it is not, the measured
++%   difference mixes effects and nothing can be concluded from it.
++%
++%   This has already happened once. The peak neighbourhood moved from 21x21
++%   to 17x17 at the M2/M3 boundary, the change was made in BASELINECONFIG,
++%   and ENHANCEDCONFIG - deriving separately from DEFAULTCONFIG - silently
++%   kept 21x21. Nothing errored; the two systems simply stopped being
++%   comparable. ENHANCEDCONFIG now inherits from BASELINECONFIG, and these
++%   tests hold that property still.
++%
++%   Milestone: M4.  Blueprint: sections 3.7, 7 (M4), 8.
++tests = functiontests(localfunctions);
++end
++
++function setupOnce(testCase)
++setupPaths();
++testCase.TestData.B = baselineConfig();
++testCase.TestData.E = enhancedConfig();
++end
++
++function testSharedParametersAreIdentical(testCase)
++% Every field that is NOT part of an enhancement must match exactly.
++B = testCase.TestData.B;
++E = testCase.TestData.E;
++
++verifyEqual(testCase, E.audio, B.audio, 'audio settings diverged.');
++verifyEqual(testCase, E.pre,   B.pre,   'preprocessing settings diverged.');
++verifyEqual(testCase, E.stft,  B.stft,  'STFT grid diverged.');
++
++% Peak picking: mode and kappaDb ARE Enhancement 1. Everything else is not.
++sharedPeakFields = {'nbhdF', 'nbhdT', 'densityPerSec', 'bandEdgesHz', 'floorDb'};
++for k = 1:numel(sharedPeakFields)
++    f = sharedPeakFields{k};
++    verifyEqual(testCase, E.peaks.(f), B.peaks.(f), ...
++        sprintf(['Cfg.peaks.%s differs between systems (baseline %s, ' ...
++                 'enhanced %s). It is not part of either enhancement, so a ' ...
++                 'difference here confounds the comparison.'], ...
++            f, mat2str(B.peaks.(f)), mat2str(E.peaks.(f))));
++end
++
++% Hashing: fanout and dtMax ARE Enhancement 2. The packing is not.
++sharedHashFields = {'dtMin', 'dfMaxBins', 'freqDecim', 'freqBits', 'dtBits'};
++for k = 1:numel(sharedHashFields)
++    f = sharedHashFields{k};
++    verifyEqual(testCase, E.hash.(f), B.hash.(f), ...
++        sprintf('Cfg.hash.%s differs between systems.', f));
++end
++end
++
++function testEnhancementsAreActuallyOn(testCase)
++B = testCase.TestData.B;
++E = testCase.TestData.E;
++
++verifyEqual(testCase, B.peaks.mode, 'fixed');
++verifyFalse(testCase, B.denoise.enable);
++verifyFalse(testCase, B.shortQuery.enable);
++
++verifyEqual(testCase, E.peaks.mode, 'adaptive', 'Enhancement 1b is off.');
++verifyTrue(testCase, E.denoise.enable,          'Enhancement 1a is off.');
++verifyTrue(testCase, E.shortQuery.enable,       'Enhancement 2 is off.');
++end
++
++function testTagsDifferAndNameTheSystem(testCase)
++B = testCase.TestData.B;
++E = testCase.TestData.E;
++
++verifyNotEqual(testCase, E.tag, B.tag, ...
++    'The two systems share a config tag; their indexes would collide.');
++verifyTrue(testCase, startsWith(B.tag, 'base'), 'Baseline tag mislabelled.');
++verifyTrue(testCase, startsWith(E.tag, 'enh'),  'Enhanced tag mislabelled.');
++end
++
++function testBaselineChangesPropagateToEnhanced(testCase)
++% The actual guarantee: editing baselineConfig must move the enhanced system
++% too. Deriving enhancedConfig from defaultConfig would break this silently.
++E = testCase.TestData.E;
++B = testCase.TestData.B;
++
++verifyEqual(testCase, E.peaks.nbhdF, B.peaks.nbhdF, ...
++    ['enhancedConfig does not track baselineConfig''s neighbourhood. ' ...
++     'It must derive FROM baselineConfig, not from defaultConfig.']);
++verifyEqual(testCase, E.peaks.densityPerSec, B.peaks.densityPerSec);
++end
++
++function testEnrolmentZoneCoversEveryQueryMode(testCase)
++% Enhancement 2 widens the query target zone on short clips. Hashes outside
++% the ENROLMENT zone can never collide, so the database zone has to be at
++% least as wide as any query mode will ask for. Getting this wrong is silent:
++% the symptom is simply that short queries stop matching.
++E = testCase.TestData.E;
++
++verifyGreaterThanOrEqual(testCase, E.hash.dtMax, E.shortQuery.dtMax, ...
++    'Short-query dtMax exceeds the enrolment target zone.');
++verifyGreaterThanOrEqual(testCase, E.hash.fanout, E.shortQuery.fanout, ...
++    'Short-query fan-out exceeds the enrolment fan-out.');
++
++if ~isempty(E.hash.queryDtMax)
++    verifyGreaterThanOrEqual(testCase, E.hash.dtMax, E.hash.queryDtMax);
++end
++end
+-- 
+2.43.0
+

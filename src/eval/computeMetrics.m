@@ -57,7 +57,7 @@ if ~isempty(missingCols)
         'Results table has no column(s): %s', strjoin(missingCols, ', '));
 end
 
-required = {'isInDb', 'correct', 'accepted'};
+required = {'isInDb', 'correct', 'accepted', 'normScore', 'margin'};
 missingCols = setdiff(required, R.Properties.VariableNames);
 if ~isempty(missingCols)
     error('HimigTransform:BadResultsTable', ...
@@ -81,6 +81,11 @@ tMatchP95    = nan(nG, 1);
 tTotalMedian = nan(nG, 1);
 tTotalP95    = nan(nG, 1);
 
+normScoreMedian = nan(nG, 1);
+normScoreP05    = nan(nG, 1);
+marginMedian    = nan(nG, 1);
+marginMin       = nan(nG, 1);
+
 hasTiming = all(ismember({'tMatchSec', 'tTotalSec'}, R.Properties.VariableNames));
 hasWarmup = ismember('warmup', R.Properties.VariableNames);
 
@@ -98,6 +103,26 @@ for g = 1:nG
     nCorrect(g)  = nnz(inDb & R.correct);
     nCorrAcc(g)  = nnz(inDb & R.correct & R.accepted);
     nHoldAcc(g)  = nnz(holdout & R.accepted);
+
+    % ---- Decision margin, over in-DB queries only -----------------------
+    % normScore degrades continuously where accuracy saturates. On a
+    % 100-song database a 3 s query at 0 dB still identifies correctly
+    % essentially always, because a dozen surviving hashes beat 99 rivals
+    % contributing one or two chance collisions each - so top-1 stays at
+    % 100% while the fingerprint is in fact being destroyed (peak survival
+    % at 0 dB measures around 12%).
+    %
+    % That makes accuracy the wrong dependent variable at this database
+    % size, and normScore the right one: it is the headroom the decision
+    % has left, it is precisely what Enhancement 1 protects, and it is
+    % measurable at the SNRs the proposal names. Reported here so the
+    % effect can be quoted even from a saturated accuracy table.
+    if any(inDb)
+        normScoreMedian(g) = median(R.normScore(inDb));
+        normScoreP05(g)    = prctile05(R.normScore(inDb));
+        marginMedian(g)    = median(R.margin(inDb));
+        marginMin(g)       = min(R.margin(inDb));
+    end
 
     if hasTiming
         if hasWarmup
@@ -135,6 +160,11 @@ T.precision         = prP;  T.precisionLo      = prLo;  T.precisionHi      = prH
 T.recall            = rcP;  T.recallLo         = rcLo;  T.recallHi         = rcHi;
 T.far               = faP;  T.farLo            = faLo;  T.farHi            = faHi;
 
+T.normScoreMedian = normScoreMedian;
+T.normScoreP05    = normScoreP05;
+T.marginMedian    = marginMedian;
+T.marginMin       = marginMin;
+
 T.tMatchMedian = tMatchMedian;
 T.tMatchP95    = tMatchP95;
 T.tTotalMedian = tTotalMedian;
@@ -146,6 +176,8 @@ metricOrder = {'closedSetAcc', 'closedSetAccLo', 'closedSetAccHi', ...
                'precision', 'precisionLo', 'precisionHi', ...
                'recall', 'recallLo', 'recallHi', ...
                'far', 'farLo', 'farHi', ...
+               'normScoreMedian', 'normScoreP05', ...
+               'marginMedian', 'marginMin', ...
                'tMatchMedian', 'tMatchP95', 'tTotalMedian', 'tTotalP95'};
 T = T(:, [groupVars, {'nQueries', 'nInDb', 'nHoldout', 'nAccepted'}, metricOrder]);
 
@@ -154,6 +186,19 @@ T.Properties.UserData = struct( ...
     'groupVars', {groupVars}, ...
     'source',    resultsProvenance(R), ...
     'builtOn',   datetime('now'));
+
+end
+
+% =======================================================================
+function v = prctile05(x)
+%PRCTILE05 5th percentile without Statistics Toolbox. Mirrors PRCTILE95.
+
+x = sort(x(:));
+if isempty(x)
+    v = NaN;
+    return
+end
+v = x(max(1, ceil(0.05 * numel(x))));
 
 end
 

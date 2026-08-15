@@ -27,8 +27,9 @@ function Cfg = enhancedConfig()
 %
 %   Blueprint: sections 0 (D4), 3.3, 3.4, 3.6, 7 (M4-M5), 8.2.
 
-Cfg = defaultConfig();
+Cfg = baselineConfig();
 
+% Re-label: the tag must not claim to be the baseline.
 Cfg.name = 'enh';
 
 % --- Enhancement 1a: query-side spectral subtraction -----------------
@@ -38,6 +39,22 @@ Cfg.denoise.beta           = 0.02;   % TUNE ON DEV (M4)
 Cfg.denoise.noiseFrameFrac = 0.10;
 
 % --- Enhancement 1b: SNR-adaptive peak picking -----------------------
+% --- Shared with the baseline: everything the enhancements do NOT change ---
+% The peak neighbourhood was moved from 21x21 to 17x17 at the M2/M3 boundary
+% (docs/designNotes.md), and that change was made in BASELINECONFIG only.
+% Both files derive from DEFAULTCONFIG, so the enhanced system silently kept
+% 21x21 - a different peak geometry from the system it is supposed to be
+% compared against.
+%
+% That is a confound, not a detail. Enhancement 1 is a claim about peak
+% SELECTION under noise; measuring it against a baseline with a different peak
+% NEIGHBOURHOOD means any difference mixes the two effects and nothing about
+% the enhancement can be concluded from it.
+%
+% Inheriting from BASELINECONFIG rather than DEFAULTCONFIG makes the two
+% systems share every parameter by construction, so the only differences are
+% the ones written below. tSystemParity asserts it.
+
 Cfg.peaks.mode    = 'adaptive';
 Cfg.peaks.kappaDb = 6;               % TUNE ON DEV (M4)
 

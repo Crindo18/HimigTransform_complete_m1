@@ -40,7 +40,7 @@ function catalog = buildCatalog(fileList, Cfg, catalogPath)
 %   See also INGESTLIBRARY, LOADCATALOG, CATALOGSCHEMA.
 
 if nargin < 3 || isempty(catalogPath)
-    catalogPath = fullfile(setupPaths(), 'db', 'catalog.csv');
+    catalogPath = fullfile(projectRoot(), 'db', 'catalog.csv');
 end
 catalogPath = char(catalogPath);
 

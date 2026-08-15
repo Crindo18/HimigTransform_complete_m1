@@ -33,7 +33,7 @@ stream = RandStream('twister', 'Seed', Cfg.seed);
 x = randn(stream, 8000, 1) * 0.1;
 n = randn(stream, 8000, 1) * 0.5;
 
-targets = [20, 15, 10, 5, 0, -5];
+targets = [10, 5, 0, -5, -10, -15, -20, -25];
 
 for t = targets
     [~, ~, snrMeas] = mixAtSNR(x, n, t);

@@ -27,7 +27,7 @@ if nargin < 1 || isempty(Cfg)
 end
 
 if nargin < 2 || isempty(catalogPath)
-    catalogPath = fullfile(setupPaths(), 'db', 'catalog.csv');
+    catalogPath = fullfile(projectRoot(), 'db', 'catalog.csv');
 end
 catalogPath = char(catalogPath);
 
