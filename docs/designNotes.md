@@ -430,3 +430,82 @@ pool.
 | 3 | `mcnemarTest` + `tuneThresholds` are still stubs | M5 |
 | 4 | Report normScore alongside accuracy | it degrades at 0 dB where accuracy does not |
 | 5 | `freqDecim` ablation | M4 |
+
+---
+
+## 2026-08-15 — M5/M7 test results: the enhancement does not improve accuracy
+
+Both systems ran on the held-out test split (20,250 queries each, n = 240–720
+per cell) with thresholds tuned on dev beforehand. **The enhanced system is
+slightly but consistently worse than the baseline.**
+
+Enhanced minus baseline, percentage points:
+
+| SNR | 3 s | 5 s | 10 s |
+|---|---|---|---|
+| 0 | −1.0 | −0.7 | −0.2 |
+| −5 | 0.0 | −0.6 | +0.2 |
+| −10 | −1.6 | −2.1 | −1.9 |
+| −15 | +0.9 | −2.5 | −3.2 |
+| −20 | −0.8 | −3.2 | −2.7 |
+
+13 of 27 cells worse, 5 better. Mean −1.46 pp across the −5…−20 dB band the
+enhancements target. Overall in-DB top-1: baseline 69.8%, enhanced 69.1%.
+
+**Success criterion 1 is not met anywhere on this grid.**
+
+### The pattern points at one component
+
+Mean difference over 0…−20 dB, by query length:
+
+| | mean |
+|---|---|
+| 3 s — Enhancement 2 **on** | −0.50 pp |
+| 5 s — Enhancement 2 **off** | −1.82 pp |
+| 10 s — Enhancement 2 **off** | −1.56 pp |
+
+The lengths where Enhancement 2 is switched off are hurt three to four times
+harder. Those queries differ from the baseline in only three ways: spectral
+subtraction, adaptive peak picking, and an enrolment index carrying 4.84 M
+postings instead of 2.12 M.
+
+The wider enrolment zone (fan-out 20, dtMax 64) is the suspect. It applies to
+**every** query but only pays back on clips under 5 s, and more postings means
+more chance collisions raising the floor of the offset histogram — exactly the
+mechanism that would cost a couple of points at low SNR where the true peak is
+already shallow.
+
+That is a hypothesis, not a conclusion. `enh1` and `enh2` in `systemConfig`
+settle it: `enh1` is Enhancement 1 against the baseline enrolment zone, and the
+5 s / 10 s rows of `enh2` are a direct measurement of the wider index alone,
+since the query side there is identical to the baseline.
+
+### The open-set threshold is being set by a data problem
+
+`s05` had to push tau to 0.478 to hold FAR under 1%, giving recall 0.03–0.25.
+For scale, a genuine in-database query scores about 0.28 clean and 0.14 at
+0 dB. **A holdout query scoring above 0.4 means roughly half its hashes aligned
+at one offset — that is not chance, it is the same recording.**
+
+The likely cause is ordinary: the catalogue was built from personal libraries,
+so the same track can appear in both an enrolled folder and the holdout folder
+— a duplicate file, a remaster, a single versus an album cut. Every such song
+is a query that *should* match being counted as a false accept, which inflates
+FAR, forces tau up, and the high tau then rejects genuine queries. That is
+precisely the observed signature: precision 1.000, FAR 0.000, recall 0.04.
+
+`s02b_checkHoldout` queries every holdout song against the index and names the
+duplicates. Run it before drawing any conclusion about open-set performance.
+
+### On reporting a negative result
+
+A negative result that is **properly attributed** is a contribution: the
+project would be reporting that, on a 100-song database, Shazam-style
+constellation fingerprinting is already robust enough that spectral
+subtraction and adaptive peak picking add nothing, while the widened target
+zone costs accuracy on long queries. That is a real, defensible finding about
+where these techniques do and do not help, and it is consistent with the
+saturation finding at 0 dB.
+
+An unattributed negative result is not. The difference between the two is the
+ablation, and it costs about half an hour of compute.

@@ -1,0 +1,611 @@
+From 61e30feaa50e99aa521b93925c2503d274921dc1 Mon Sep 17 00:00:00 2001
+From: Crindo18 <chrisjohnalado@gmail.com>
+Date: Sat, 15 Aug 2026 08:55:50 +0000
+Subject: [PATCH] M7 tooling: paired comparison, ablation variants, holdout
+ duplicate check
+
+The test-split runs are in and the enhanced system is 1.46 pp WORSE on
+average across the -5..-20 dB band it targets (13 of 27 cells worse, 5
+better; overall in-DB 69.8% baseline vs 69.1% enhanced). Success
+criterion 1 is not met anywhere on the grid.
+
+The regression is 3-4x larger at 5 s and 10 s, which is exactly where
+Enhancement 2 is switched off - so those queries differ from baseline
+only by denoising, adaptive picking, and an index with 2.3x the
+postings. The wider enrolment zone applies to every query but only pays
+back under 5 s, and more postings means more chance collisions raising
+the offset-histogram floor.
+
+Added to settle it:
+  systemConfig 'enh1'  Enhancement 1 against the BASELINE enrolment
+                       zone - isolates denoise + adaptive picking.
+  systemConfig 'enh2'  Enhancement 2 only. Its 5 s / 10 s rows have a
+                       query side identical to the baseline, so they
+                       measure the wider index on its own.
+  s08_compareSystems   exact McNemar per (length, SNR) cell, aligned by
+                       queryID, with an explicit check that a file's
+                       label matches the config tag it carries.
+  s02b_checkHoldout    s05 had to push tau to 0.478 to hold FAR under
+                       1%, but a genuine query scores ~0.28 clean - a
+                       holdout above 0.4 is the same recording, not a
+                       coincidence. Catalogues built from personal
+                       libraries duplicate tracks across folders, and
+                       each duplicate inflates FAR until tau rises far
+                       enough to reject real queries too. That is the
+                       observed signature: precision 1.000, FAR 0.000,
+                       recall 0.04.
+---
+ config/systemConfig.m        |  61 +++++++++-
+ docs/designNotes.md          |  79 +++++++++++++
+ scripts/s02b_checkHoldout.m  | 173 ++++++++++++++++++++++++++++
+ scripts/s08_compareSystems.m | 217 +++++++++++++++++++++++++++++++++++
+ 4 files changed, 527 insertions(+), 3 deletions(-)
+ create mode 100644 scripts/s02b_checkHoldout.m
+ create mode 100644 scripts/s08_compareSystems.m
+
+diff --git a/config/systemConfig.m b/config/systemConfig.m
+index 0e55935..9531894 100644
+--- a/config/systemConfig.m
++++ b/config/systemConfig.m
+@@ -32,11 +32,66 @@ function Cfg = systemConfig(systemName)
+         Cfg = baselineConfig();
+     case 'enhanced'
+         Cfg = enhancedConfig();
++
++    case 'enh1'
++        % ABLATION: Enhancement 1 alone - spectral subtraction on the query
++        % plus adaptive peak picking - measured against the BASELINE
++        % enrolment zone.
++        %
++        % The full enhanced system bundles three changes, and one of them
++        % (the wider enrolment zone) affects every query while only paying
++        % back on clips under 5 s. Without this variant a loss cannot be
++        % attributed: the M7 test run came out 1.8 pp WORSE at 5 s and 1.6 pp
++        % worse at 10 s, which is exactly where Enhancement 2 is switched off
++        % and only the wider index is in play.
++        Cfg = baselineConfig();
++        Cfg.name = 'enh1';
++
++        Cfg.peaks.mode     = 'adaptive';
++        Cfg.denoise.enable = true;
++
++        % Enrolment zone stays at the baseline's, so the index has the same
++        % posting count and the same chance-collision floor.
++        Cfg.shortQuery.enable = false;
++        Cfg.hash.fanout       = 8;
++        Cfg.hash.dtMax        = 32;
++        Cfg.hash.queryFanout  = [];
++        Cfg.hash.queryDtMax   = [];
++
++        Cfg.tag = makeConfigTag(Cfg);
++
++    case 'enh2'
++        % ABLATION: Enhancement 2 alone - the wider enrolment zone and the
++        % short-query fan-out - with baseline peak picking and no denoising.
++        %
++        % Read the 5 s and 10 s rows of this run carefully: at those lengths
++        % the short-query override is inactive, so the query side is
++        % IDENTICAL to the baseline and the only difference left is the
++        % 2.3x larger index. Those two rows are a direct measurement of what
++        % the wider enrolment zone costs on its own.
++        Cfg = baselineConfig();
++        Cfg.name = 'enh2';
++
++        Cfg.peaks.mode     = 'fixed';
++        Cfg.denoise.enable = false;
++
++        Cfg.shortQuery.enable       = true;
++        Cfg.shortQuery.thresholdSec = 5;
++        Cfg.shortQuery.fanout       = 20;
++        Cfg.shortQuery.dtMax        = 64;
++
++        Cfg.hash.fanout      = 20;
++        Cfg.hash.dtMax       = 64;
++        Cfg.hash.queryFanout = 8;
++        Cfg.hash.queryDtMax  = 32;
++
++        Cfg.tag = makeConfigTag(Cfg);
++
+     otherwise
+         error('HimigTransform:UnknownSystem', ...
+-            ['Unknown system "%s". Expected ''baseline'' or ''enhanced''. ' ...
+-             'Ablation runs (enh1 / enh2 alone) get their own named entry ' ...
+-             'here rather than an edited script - see docs/designNotes.md.'], ...
++            ['Unknown system "%s". Expected baseline, enhanced, enh1 or ' ...
++             'enh2. Every variant gets a named entry here rather than an ' ...
++             'edited script, so the label and the config cannot disagree.'], ...
+             name);
+ end
+ 
+diff --git a/docs/designNotes.md b/docs/designNotes.md
+index 75de5c6..fc34bd9 100644
+--- a/docs/designNotes.md
++++ b/docs/designNotes.md
+@@ -430,3 +430,82 @@ pool.
+ | 3 | `mcnemarTest` + `tuneThresholds` are still stubs | M5 |
+ | 4 | Report normScore alongside accuracy | it degrades at 0 dB where accuracy does not |
+ | 5 | `freqDecim` ablation | M4 |
++
++---
++
++## 2026-08-15 — M5/M7 test results: the enhancement does not improve accuracy
++
++Both systems ran on the held-out test split (20,250 queries each, n = 240–720
++per cell) with thresholds tuned on dev beforehand. **The enhanced system is
++slightly but consistently worse than the baseline.**
++
++Enhanced minus baseline, percentage points:
++
++| SNR | 3 s | 5 s | 10 s |
++|---|---|---|---|
++| 0 | −1.0 | −0.7 | −0.2 |
++| −5 | 0.0 | −0.6 | +0.2 |
++| −10 | −1.6 | −2.1 | −1.9 |
++| −15 | +0.9 | −2.5 | −3.2 |
++| −20 | −0.8 | −3.2 | −2.7 |
++
++13 of 27 cells worse, 5 better. Mean −1.46 pp across the −5…−20 dB band the
++enhancements target. Overall in-DB top-1: baseline 69.8%, enhanced 69.1%.
++
++**Success criterion 1 is not met anywhere on this grid.**
++
++### The pattern points at one component
++
++Mean difference over 0…−20 dB, by query length:
++
++| | mean |
++|---|---|
++| 3 s — Enhancement 2 **on** | −0.50 pp |
++| 5 s — Enhancement 2 **off** | −1.82 pp |
++| 10 s — Enhancement 2 **off** | −1.56 pp |
++
++The lengths where Enhancement 2 is switched off are hurt three to four times
++harder. Those queries differ from the baseline in only three ways: spectral
++subtraction, adaptive peak picking, and an enrolment index carrying 4.84 M
++postings instead of 2.12 M.
++
++The wider enrolment zone (fan-out 20, dtMax 64) is the suspect. It applies to
++**every** query but only pays back on clips under 5 s, and more postings means
++more chance collisions raising the floor of the offset histogram — exactly the
++mechanism that would cost a couple of points at low SNR where the true peak is
++already shallow.
++
++That is a hypothesis, not a conclusion. `enh1` and `enh2` in `systemConfig`
++settle it: `enh1` is Enhancement 1 against the baseline enrolment zone, and the
++5 s / 10 s rows of `enh2` are a direct measurement of the wider index alone,
++since the query side there is identical to the baseline.
++
++### The open-set threshold is being set by a data problem
++
++`s05` had to push tau to 0.478 to hold FAR under 1%, giving recall 0.03–0.25.
++For scale, a genuine in-database query scores about 0.28 clean and 0.14 at
++0 dB. **A holdout query scoring above 0.4 means roughly half its hashes aligned
++at one offset — that is not chance, it is the same recording.**
++
++The likely cause is ordinary: the catalogue was built from personal libraries,
++so the same track can appear in both an enrolled folder and the holdout folder
++— a duplicate file, a remaster, a single versus an album cut. Every such song
++is a query that *should* match being counted as a false accept, which inflates
++FAR, forces tau up, and the high tau then rejects genuine queries. That is
++precisely the observed signature: precision 1.000, FAR 0.000, recall 0.04.
++
++`s02b_checkHoldout` queries every holdout song against the index and names the
++duplicates. Run it before drawing any conclusion about open-set performance.
++
++### On reporting a negative result
++
++A negative result that is **properly attributed** is a contribution: the
++project would be reporting that, on a 100-song database, Shazam-style
++constellation fingerprinting is already robust enough that spectral
++subtraction and adaptive peak picking add nothing, while the widened target
++zone costs accuracy on long queries. That is a real, defensible finding about
++where these techniques do and do not help, and it is consistent with the
++saturation finding at 0 dB.
++
++An unattributed negative result is not. The difference between the two is the
++ablation, and it costs about half an hour of compute.
+diff --git a/scripts/s02b_checkHoldout.m b/scripts/s02b_checkHoldout.m
+new file mode 100644
+index 0000000..52bffb4
+--- /dev/null
++++ b/scripts/s02b_checkHoldout.m
+@@ -0,0 +1,173 @@
++%S02B_CHECKHOLDOUT  Are any "holdout" songs actually in the database?
++%
++%   Queries every holdout song against the enrolled index, clean, at several
++%   offsets, and reports the best match for each. A holdout song is supposed
++%   to be absent from the database, so a strong match means the two sets
++%   overlap and the open-set numbers are measuring the wrong thing.
++%
++%   Usage
++%       s02b_checkHoldout
++%       s02b_system = 'baseline'; s02b_checkHoldout
++%
++%   WHY THIS EXISTS. s05 had to push tau to 0.478 to hold FAR under 1%. For
++%   scale: a GENUINE in-database query scores about 0.28 clean and 0.14 at
++%   0 dB. A threshold above 0.4 means some holdout queries were scoring
++%   HIGHER than real matches - and 48% of a query's hashes aligning at one
++%   offset is not chance, it is the same recording.
++%
++%   The likely cause is ordinary and easy to miss: the catalogue was built
++%   from personal music libraries, so the same track can appear in both the
++%   enrolled folders and the holdout folder - a duplicate file, a remaster, a
++%   single and an album cut, or the same song under a different spelling.
++%
++%   WHAT IT COSTS IF LEFT ALONE. Every duplicate is a query that SHOULD be
++%   accepted being counted as a false accept. That inflates FAR, forces tau up
++%   to compensate, and the high tau then rejects genuine queries - which is
++%   exactly the pattern observed: precision 1.000, FAR 0.000, recall 0.03.
++%   The open-set threshold ends up set by a data-cleaning problem rather than
++%   by the system.
++%
++%   Milestone: M5.  Blueprint: sections 2.2, 8.3.
++%
++%   See also TUNETHRESHOLDS, S01_INGEST, S03_ENROLL.
++
++projRoot = setupPaths();
++
++if ~exist('s02b_system', 'var') || isempty(s02b_system)
++    s02b_system = 'baseline';
++end
++
++% A holdout query scoring at or above this is not a coincidence. Genuine
++% clean in-database queries sit near 0.28, so anything at 0.15 or above is
++% sharing a substantial fraction of its fingerprint with an enrolled track.
++suspectNormScore = 0.15;
++
++Cfg = systemConfig(s02b_system);
++rng(Cfg.seed, 'twister');
++
++logMsg('info', '===== s02b_checkHoldout =====');
++
++indexPath = fullfile(projRoot, 'db', sprintf('index_%s.mat', Cfg.tag));
++if ~isfile(indexPath)
++    error('HimigTransform:NoIndex', 'No index at %s. Run s03_enroll.', indexPath);
++end
++S   = load(indexPath);
++Idx = S.Idx;
++
++catalog = loadCatalog(Cfg);
++hold    = catalog(catalog.role == 'holdout', :);
++
++if isempty(hold)
++    error('HimigTransform:NoHoldout', 'No holdout songs in the catalogue.');
++end
++
++logMsg('info', 'Probing %d holdout song(s) against %d enrolled song(s).', ...
++    height(hold), Idx.stats.nSongsEnrolled);
++
++lenSec  = 10;
++offsets = [0.20 0.40 0.60 0.80];   % fractions of the track
++
++rows = {};
++
++for k = 1:height(hold)
++    id = double(hold.songID(k));
++    f  = fullfile(projRoot, 'data', 'processed', ...
++        strrep(char(hold.procPath(k)), '/', filesep));
++
++    x = double(audioread(f));
++    x = x(:, 1);
++
++    lenSamp = min(round(lenSec * Cfg.audio.fs), numel(x));
++
++    bestNs   = 0;
++    bestPred = 0;
++    bestMg   = 0;
++
++    for oi = 1:numel(offsets)
++        s0 = max(1, min(round(offsets(oi) * numel(x)), numel(x) - lenSamp + 1));
++        res = identifyQuery(x(s0 : s0 + lenSamp - 1), Idx, Cfg);
++
++        if res.normScore > bestNs
++            bestNs   = res.normScore;
++            bestPred = res.pred1;
++            bestMg   = res.margin;
++        end
++    end
++
++    if bestPred > 0
++        matchRow   = catalog(catalog.songID == bestPred, :);
++        matchTitle = char(matchRow.title(1));
++        matchArtist = char(matchRow.artist(1));
++    else
++        matchTitle  = '-';
++        matchArtist = '-';
++    end
++
++    rows{end+1} = struct( ...
++        'holdoutID',     id, ...
++        'holdoutTitle',  string(hold.title(k)), ...
++        'holdoutArtist', string(hold.artist(k)), ...
++        'bestMatchID',   bestPred, ...
++        'bestMatchTitle', string(matchTitle), ...
++        'bestMatchArtist', string(matchArtist), ...
++        'normScore',     bestNs, ...
++        'margin',        bestMg, ...
++        'suspect',       bestNs >= suspectNormScore); %#ok<SAGROW>
++end
++
++T = struct2table([rows{:}]);
++T = sortrows(T, 'normScore', 'descend');
++
++fprintf('\n--- Holdout songs, best match against the enrolled database ---\n');
++fprintf('%9s %10s %8s   %-28s -> %s\n', ...
++    'holdoutID', 'normScore', 'margin', 'holdout title', 'best enrolled match');
++
++for ii = 1:height(T)
++    if T.suspect(ii)
++        mark = '  <-- DUPLICATE?';
++    else
++        mark = '';
++    end
++    fprintf('%9d %10.4f %8.1f   %-28s -> %s%s\n', ...
++        T.holdoutID(ii), T.normScore(ii), T.margin(ii), ...
++        truncate(char(T.holdoutTitle(ii)), 28), ...
++        truncate(char(T.bestMatchTitle(ii)), 28), mark);
++end
++
++nSuspect = nnz(T.suspect);
++
++fprintf('\n--- Verdict ---\n');
++fprintf('  holdout songs        : %d\n', height(T));
++fprintf('  suspected duplicates : %d  (normScore >= %.2f)\n', nSuspect, suspectNormScore);
++fprintf('  max holdout normScore: %.4f\n', max(T.normScore));
++
++if nSuspect > 0
++    fprintf(['\n  These are not open-set failures - they are catalogue errors.\n' ...
++             '  Each one is a query that SHOULD match being counted as a false\n' ...
++             '  accept, which inflates FAR and forces tau up until genuine\n' ...
++             '  queries get rejected too.\n\n' ...
++             '  Fix: remove the duplicate from data/raw/holdout (or from the\n' ...
++             '  enrolled folder, whichever copy is the stray), re-run\n' ...
++             '  s01_ingest, s03_enroll, s04_buildQueries, then re-tune at s05.\n' ...
++             '  songID is never reused, so the manifest must be rebuilt.\n']);
++else
++    fprintf(['\n  No duplicates. The open-set difficulty is real, not a data\n' ...
++             '  problem - report the operating characteristic rather than a\n' ...
++             '  single point, and pick the FAR budget from the knee.\n']);
++end
++
++outDir = fullfile(projRoot, 'results', 'tables');
++if ~isfolder(outDir), mkdir(outDir); end
++outPath = fullfile(outDir, 'holdoutCheck.csv');
++writetable(T, outPath);
++
++fprintf('\nWritten to %s\n', outPath);
++fprintf('s02b_checkHoldout: PASS\n');
++fprintf('---------------------\n');
++
++% =======================================================================
++function s = truncate(s, n)
++if numel(s) > n
++    s = [s(1:n-3) '...'];
++end
++end
+diff --git a/scripts/s08_compareSystems.m b/scripts/s08_compareSystems.m
+new file mode 100644
+index 0000000..9784eef
+--- /dev/null
++++ b/scripts/s08_compareSystems.m
+@@ -0,0 +1,217 @@
++%S08_COMPARESYSTEMS  Paired comparison of two systems, cell by cell.
++%
++%   Loads two results files, aligns them BY QUERYID, and runs an exact
++%   McNemar test in every (length, SNR) cell. Writes the comparison table and
++%   prints the cells where the difference is significant.
++%
++%   Usage
++%       s08_a = 'baseline'; s08_b = 'enhanced'; s08_compareSystems
++%       s08_a = 'baseline'; s08_b = 'enh1';     s08_compareSystems
++%
++%   Options
++%       s08_split   which split the files must carry (default 'test')
++%       s08_alpha   significance level (default 0.05)
++%
++%   WHY PAIRED, PER CELL.
++%
++%   Both systems answered the same queries - same excerpt, same noise
++%   segment, same SNR - because the manifest fixes all of that before either
++%   runs. Comparing two accuracy figures with their Wilson intervals throws
++%   that away: at n = 720 the half-width is around 3 pp, so two intervals
++%   overlap while the paired difference is unambiguous either way. Overlapping
++%   error bars are not evidence of no difference.
++%
++%   Per cell, not pooled, because a pooled p-value depends on how many cells
++%   of each kind the grid happens to contain.
++%
++%   READ THE SIGN, NOT JUST THE STARS. A significant result here can be a
++%   significant REGRESSION. That is a finding, not a failure of the run.
++%
++%   Milestone: M7.  Blueprint: sections 8.3, 8.4.
++%
++%   See also MCNEMARTEST, COMPUTEMETRICS, S06_RUNEVALUATION.
++
++projRoot = setupPaths();
++
++if ~exist('s08_a', 'var') || isempty(s08_a), s08_a = 'baseline'; end
++if ~exist('s08_b', 'var') || isempty(s08_b), s08_b = 'enhanced'; end
++if ~exist('s08_split', 'var') || isempty(s08_split), s08_split = 'test'; end
++if ~exist('s08_alpha', 'var') || isempty(s08_alpha), s08_alpha = 0.05; end
++
++logMsg('info', '===== s08_compareSystems =====');
++logMsg('info', '%s vs %s | split %s | alpha %.3f', s08_a, s08_b, s08_split, s08_alpha);
++
++RA = loadLatestResults(projRoot, s08_a, s08_split);
++RB = loadLatestResults(projRoot, s08_b, s08_split);
++
++% ---- Align by queryID ---------------------------------------------------
++% Alignment is the whole basis of the test. Do not assume the two files came
++% out in the same order - a subset run, a parfor, or a re-run with a different
++% split filter all break that assumption silently.
++[common, ia, ib] = intersect(RA.queryID, RB.queryID, 'stable');
++
++if isempty(common)
++    error('HimigTransform:NoCommonQueries', ...
++        'The two result files share no queryID. Were they built from the same manifest?');
++end
++
++if numel(common) < height(RA) || numel(common) < height(RB)
++    logMsg('warn', ...
++        ['Only %d queries are common to both files (%s has %d, %s has %d). ' ...
++         'Comparing the intersection.'], ...
++        numel(common), s08_a, height(RA), s08_b, height(RB));
++end
++
++A = RA(ia, :);
++B = RB(ib, :);
++
++if ~isequal(A.queryID, B.queryID)
++    error('HimigTransform:AlignmentFailed', ...
++        'queryID alignment failed after intersect - do not proceed.');
++end
++
++% ---- Per-cell McNemar ---------------------------------------------------
++lengths = unique(A.lengthSec);
++snrs    = unique(A.targetSnrDb, 'stable');
++snrs    = sort(snrs, 'descend');
++
++rows = {};
++
++for li = 1:numel(lengths)
++    for si = 1:numel(snrs)
++        m = A.lengthSec == lengths(li) & A.targetSnrDb == snrs(si) & A.isInDb;
++        if ~any(m), continue, end
++
++        cA = logical(A.correct(m));
++        cB = logical(B.correct(m));
++
++        [p, st] = mcnemarTest(cA, cB, s08_alpha);
++
++        rows{end+1} = struct( ...
++            'lengthSec', lengths(li), ...
++            'snrDb',     snrs(si), ...
++            'n',         st.n, ...
++            'accA',      st.accA, ...
++            'accB',      st.accB, ...
++            'diffPp',    100 * st.diff, ...
++            'diffLoPp',  100 * st.diffLo, ...
++            'diffHiPp',  100 * st.diffHi, ...
++            'bOnlyA',    st.b, ...
++            'cOnlyB',    st.c, ...
++            'p',         p, ...
++            'significant', st.significant); %#ok<SAGROW>
++    end
++end
++
++T = struct2table([rows{:}]);
++
++% ---- Report -------------------------------------------------------------
++fprintf('\n--- %s (A) vs %s (B), paired McNemar, %s split ---\n', ...
++    s08_a, s08_b, s08_split);
++fprintf('%7s %7s %6s %8s %8s %9s %7s %7s %10s %s\n', ...
++    'len', 'SNR', 'n', 'A %', 'B %', 'B-A pp', 'A only', 'B only', 'p', '');
++
++for ii = 1:height(T)
++    if isinf(T.snrDb(ii)) && T.snrDb(ii) > 0
++        snrLabel = 'clean';
++    else
++        snrLabel = sprintf('%.0f', T.snrDb(ii));
++    end
++
++    if ~T.significant(ii)
++        mark = '';
++    elseif T.diffPp(ii) > 0
++        mark = '  *  B better';
++    else
++        mark = '  *  B WORSE';
++    end
++
++    fprintf('%6.0fs %7s %6d %8.1f %8.1f %+9.1f %7d %7d %10.4f%s\n', ...
++        T.lengthSec(ii), snrLabel, T.n(ii), ...
++        100 * T.accA(ii), 100 * T.accB(ii), T.diffPp(ii), ...
++        T.bOnlyA(ii), T.cOnlyB(ii), T.p(ii), mark);
++end
++
++% ---- Verdict ------------------------------------------------------------
++sig    = T(T.significant, :);
++better = sig(sig.diffPp > 0, :);
++worse  = sig(sig.diffPp < 0, :);
++
++fprintf('\n--- Verdict (alpha = %.3f, %d cells) ---\n', s08_alpha, height(T));
++fprintf('  significant improvements : %d\n', height(better));
++fprintf('  significant regressions  : %d\n', height(worse));
++fprintf('  no significant difference: %d\n', height(T) - height(sig));
++
++if ~isempty(better)
++    [~, k] = max(better.diffPp);
++    fprintf('\n  largest improvement: %+.1f pp at %g s, %g dB (p = %.4f)\n', ...
++        better.diffPp(k), better.lengthSec(k), better.snrDb(k), better.p(k));
++end
++if ~isempty(worse)
++    [~, k] = min(worse.diffPp);
++    fprintf('  largest regression : %+.1f pp at %g s, %g dB (p = %.4f)\n', ...
++        worse.diffPp(k), worse.lengthSec(k), worse.snrDb(k), worse.p(k));
++end
++
++% Criterion 1 needs a >= 10 pp gain. Say plainly whether any cell delivers it.
++crit = T(T.diffPp >= 10 & T.significant, :);
++fprintf('\n  cells with a significant gain of 10 pp or more: %d\n', height(crit));
++if isempty(crit)
++    fprintf(['  Success criterion 1 is NOT met anywhere on this grid. Report\n' ...
++             '  that as the measured outcome and explain it - a negative\n' ...
++             '  result that is properly attributed is a contribution; an\n' ...
++             '  unexplained one is not. Run the enh1 / enh2 ablations to say\n' ...
++             '  WHICH component costs what.\n']);
++end
++
++outDir = fullfile(projRoot, 'results', 'tables');
++if ~isfolder(outDir), mkdir(outDir); end
++outPath = fullfile(outDir, sprintf('compare_%s_vs_%s_%s.csv', s08_a, s08_b, s08_split));
++writetable(T, outPath);
++
++fprintf('\nWritten to %s\n', outPath);
++fprintf('s08_compareSystems: PASS\n');
++fprintf('---------------------\n');
++
++% =======================================================================
++function R = loadLatestResults(projRoot, sysName, wantSplit)
++%LOADLATESTRESULTS Newest results .mat for a system, checked against its label.
++
++files = dir(fullfile(projRoot, 'results', 'raw', sprintf('results_%s_*.mat', sysName)));
++
++if isempty(files)
++    error('HimigTransform:NoResults', ...
++        'No results for "%s". Run s06 with s06_system = ''%s''.', sysName, sysName);
++end
++
++[~, newest] = max([files.datenum]);
++S = load(fullfile(files(newest).folder, files(newest).name));
++R = S.R;
++
++% The label must match the config that produced it. systemConfig ties the two
++% at run time; this catches a file written before that fix.
++Cfg = systemConfig(sysName);
++if ismember('cfgTag', R.Properties.VariableNames) && height(R) > 0
++    if ~strcmp(char(string(R.cfgTag(1))), Cfg.tag)
++        error('HimigTransform:SystemTagMismatch', ...
++            ['%s is named "%s" but carries config tag %s, while %s produces ' ...
++             '%s. Discard it and re-run - a mislabelled file makes this ' ...
++             'comparison meaningless in a way nothing downstream can detect.'], ...
++            files(newest).name, sysName, string(R.cfgTag(1)), sysName, Cfg.tag);
++    end
++end
++
++isWanted = strcmp(cellstr(string(R.split)), wantSplit);
++if ~all(isWanted)
++    if ~any(isWanted)
++        error('HimigTransform:WrongSplit', ...
++            '%s holds no "%s" rows.', files(newest).name, wantSplit);
++    end
++    logMsg('warn', '%s: filtering %d of %d rows to split "%s".', ...
++        files(newest).name, nnz(isWanted), height(R), wantSplit);
++    R = R(isWanted, :);
++end
++
++logMsg('info', '%-9s <- %s (%d rows)', sysName, files(newest).name, height(R));
++
++end
+-- 
+2.43.0
+
