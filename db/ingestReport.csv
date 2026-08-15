@@ -1,121 +1,121 @@
 songID,sourcePath,action,fsIn,nChannelsIn,rmsDbfsIn,gainDb,peakAfter,clipGuard,durationSec,elapsedSec,message
-1,"american/4 Non Blondes - What_s Up (Official Music Video) [6NXnxTNIWkc].wav",skipped,0,0,NaN,NaN,NaN,0,292.59475,0.0933131,up to date
-2,"american/Ariana Grande - Into You (Official Video) [1ekZEVeXwek].wav",skipped,0,0,NaN,NaN,NaN,0,254.8275,0.0336441,up to date
-3,"american/Ariana Grande - One Last Time (Official Lyric Video) [Wg92RrNhB8s].wav",skipped,0,0,NaN,NaN,NaN,0,198.890625,0.0261508,up to date
-4,"american/Ava Max - Kings & Queens [Official Music Video] [jH1RNk8954Q].wav",skipped,0,0,NaN,NaN,NaN,0,162.388875,0.0246995,up to date
-5,"american/Ava Max - Sweet but Psycho [Official Music Video] [WXBHCQYxwr0].wav",skipped,0,0,NaN,NaN,NaN,0,207.1685,0.0406178,up to date
-6,"american/Backstreet Boys - I Want It That Way (Official HD Video) [4fndeDfaWCg].wav",skipped,0,0,NaN,NaN,NaN,0,219.266125,0.0257011,up to date
-7,"american/Bebe Rexha - Meant to Be (feat. Florida Georgia Line) [Official Music Video] [zDo0H8Fm7d0].wav",skipped,0,0,NaN,NaN,NaN,0,177.934625,0.0182474,up to date
-8,"american/Bill Withers - Ain_t No Sunshine (Official Audio) [YuKfiH0Scao].wav",skipped,0,0,NaN,NaN,NaN,0,126.4,0.0183023,up to date
-9,"american/Billie Eilish, Khalid - lovely [V1Pl8CzNzCw].wav",skipped,0,0,NaN,NaN,NaN,0,200.469375,0.0214149,up to date
-10,"american/Blackstreet - No Diggity (Official Music Video) ft. Dr. Dre, Queen Pen [3KL9mRus19o].wav",skipped,0,0,NaN,NaN,NaN,0,270.47775,0.0284445,up to date
-11,"american/Bruno Mars - When I Was Your Man (Official Music Video) [ekzHIouo8Q4].wav",skipped,0,0,NaN,NaN,NaN,0,234.068875,0.0629043,up to date
-12,"american/Charlie Puth - We Don_t Talk Anymore (feat. Selena Gomez) [Official Video] [3AtDnEC4zak].wav",skipped,0,0,NaN,NaN,NaN,0,230.4465,0.0474093,up to date
-13,"american/Destiny_s Child - Say My Name (Official Video) [sQgd6MccwZc].wav",skipped,0,0,NaN,NaN,NaN,0,239.44425,0.0549302,up to date
-14,"american/Djo - End Of Beginning (Official Audio) [xy3AcmW0lrQ].wav",skipped,0,0,NaN,NaN,NaN,0,159.3005,0.0425776,up to date
-15,"american/Doja Cat - Kiss Me More (Official Video) ft. SZA [0EVVKs6DQLo].wav",skipped,0,0,NaN,NaN,NaN,0,315.524375,0.0836021,up to date
-16,"american/Goo Goo Dolls - Iris [Official Music Video] [4K Remaster] [NdYWuo9OFAw].wav",skipped,0,0,NaN,NaN,NaN,0,215.550875,0.0585364,up to date
-17,"american/H.E.R. - Best Part (Lyrics) Ft. Daniel Caesar [75-Com9Bo_s].wav",skipped,0,0,NaN,NaN,NaN,0,209.455625,0.0529267,up to date
-18,"american/Hailee Steinfeld - Love Myself (Official Video) [bMpFmHSgC4Q].wav",skipped,0,0,NaN,NaN,NaN,0,240.106,0.0378563,up to date
-19,"american/Imagine Dragons - Next To Me (Audio) [-C_rvt0SwLE].wav",skipped,0,0,NaN,NaN,NaN,0,229.7035,0.0334382,up to date
-20,"american/Imagine Dragons - Thunder [fKopy74weus].wav",skipped,0,0,NaN,NaN,NaN,0,203.97575,0.0451424,up to date
-21,"american/Jason Mraz - I_m Yours (Official Video) [7gO-jFLIgdk].wav",skipped,0,0,NaN,NaN,NaN,0,220.97275,0.0203493,up to date
-22,"american/Jeremy Zucker - comethru (Official Video) [jO2viLEW-1A].wav",skipped,0,0,NaN,NaN,NaN,0,180.65075,0.0207199,up to date
-23,"american/Justin Timberlake - CAN_T STOP THE FEELING! (from DreamWorks Animation_s ＂TROLLS＂) (Official Video) [ru0K8uYEZWw].wav",skipped,0,0,NaN,NaN,NaN,0,285.83775,0.0252394,up to date
-24,"american/Katy Perry - Firework (Official Music Video) [QGJuMBdaqIw].wav",skipped,0,0,NaN,NaN,NaN,0,233.2445,0.0208432,up to date
-25,"american/Kelly Clarkson - Since U Been Gone (Official Video) [R7UrFYvl5TE].wav",skipped,0,0,NaN,NaN,NaN,0,191.820125,0.0207097,up to date
-26,"american/Khalid - Young Dumb & Broke (Official Video) [IPfJnp1guPc].wav",skipped,0,0,NaN,NaN,NaN,0,247.04875,0.0216549,up to date
-27,"american/Lauryn Hill - Nothing Even Matters feat. D_Angelo [5aDIqM0n0Eg].wav",skipped,0,0,NaN,NaN,NaN,0,350.540125,0.0299419,up to date
-28,"american/Linkin Park - In The End [Official HD Music Video] [eVTXPUF4Oz4].wav",skipped,0,0,NaN,NaN,NaN,0,218.22125,0.0212768,up to date
-29,"american/Lizzo - Good As Hell (Video) [SmbmeOgWsqE].wav",skipped,0,0,NaN,NaN,NaN,0,165.906625,0.0167351,up to date
-30,"american/Maroon 5 - Girls Like You ft. Cardi B (Official Music Video) [aJOTlE1K90k].wav",skipped,0,0,NaN,NaN,NaN,0,270.784,0.0245941,up to date
-31,"american/Marshmello - Alone (Official Music Video) [ALZHF5UqnU4].wav",skipped,0,0,NaN,NaN,NaN,0,199.4595,0.0190816,up to date
-32,"american/Meghan Trainor - All About That Bass (Official Video) [7PCkvCPvDXk].wav",skipped,0,0,NaN,NaN,NaN,0,189.9045,0.0175881,up to date
-33,"american/Olivia Rodrigo - drivers license (Official Video) [ZmDBbnmKpqQ].wav",skipped,0,0,NaN,NaN,NaN,0,247.014,0.0215736,up to date
-34,"american/Pitbull, Ke$ha - Timber (featuring Ke$ha - Official Video) [hHUbLv4ThOo].wav",skipped,0,0,NaN,NaN,NaN,0,214.03,0.0203356,up to date
-35,"american/Post Malone, Swae Lee - Sunflower (Spider-Man： Into the Spider-Verse) [ApXoWvfEYVU].wav",skipped,0,0,NaN,NaN,NaN,0,161.669,0.0161418,up to date
-36,"american/Prince - Adore (2020 Remaster) [uIgQ-tI3pbU].wav",skipped,0,0,NaN,NaN,NaN,0,394.8645,0.0348163,up to date
-37,"american/Sade - Kiss Of Life - Official - 1993 [MmOau-PMWJk].wav",skipped,0,0,NaN,NaN,NaN,0,251.4025,0.0232709,up to date
-38,"american/Selena Gomez - Back To You [VY1eFxgRR-k].wav",skipped,0,0,NaN,NaN,NaN,0,267.37075,0.0250392,up to date
-39,"american/Selena Gomez - Lose You To Love Me (Official Music Video) [zlJDTxahav0].wav",skipped,0,0,NaN,NaN,NaN,0,206.92475,0.0195922,up to date
-40,"american/Solange - Cranes in the Sky (Official Video) [S0qrinhNnOM].wav",skipped,0,0,NaN,NaN,NaN,0,272.23075,0.0237511,up to date
-41,"american/Steve Wonder - Superstition [ftdZ363R9kQ].wav",skipped,0,0,NaN,NaN,NaN,0,266.133375,0.023715,up to date
-42,"american/Taylor Swift - Shake It Off [nfWlot6h_JM].wav",skipped,0,0,NaN,NaN,NaN,0,241.592125,0.0227818,up to date
-43,"american/Taylor Swift - cardigan [K-a8s8OLBSE].wav",skipped,0,0,NaN,NaN,NaN,0,274.529625,0.0252605,up to date
-44,"american/The Chainsmokers - Closer (Official Video) ft. Halsey [0zGcUoRlhmw].wav",skipped,0,0,NaN,NaN,NaN,0,246.921,0.0226592,up to date
-45,"american/The Chainsmokers - Don_t Let Me Down (Official Video) ft. Daya [Io0fBr1XBUA].wav",skipped,0,0,NaN,NaN,NaN,0,217.849625,0.0209589,up to date
-46,"american/Train - Hey, Soul Sister (Official Video) [kVpv8-5XWOI].wav",skipped,0,0,NaN,NaN,NaN,0,217.43175,0.019176,up to date
-47,"american/Wiz Khalifa - See You Again ft. Charlie Puth [Official Video] Furious 7 Soundtrack [RgKAFK5djSk].wav",skipped,0,0,NaN,NaN,NaN,0,237.366,0.0209739,up to date
-48,"american/benny blanco, Halsey & Khalid - Eastside (official video) [56WBK4ZK_cw].wav",skipped,0,0,NaN,NaN,NaN,0,174.010375,0.0154921,up to date
-49,"american/twenty one pilots - Heathens (from Suicide Squad： The Album) [OFFICIAL VIDEO] [UprcpdwuwCg].wav",skipped,0,0,NaN,NaN,NaN,0,217.89875,0.0198958,up to date
-50,"american/twenty one pilots - Ride (Official Video) [Pw-0pbY9JeU].wav",skipped,0,0,NaN,NaN,NaN,0,225.2685,0.020207,up to date
-51,"holdout/american/Ariana Grande - no tears left to cry (Official Video) [ffxKSjUwKdU].wav",skipped,0,0,NaN,NaN,NaN,0,238.1555,0.0302418,up to date
-52,"holdout/american/D_Angelo - Untitled (How Does It Feel) (Official Music Video) [SxVNOnPyvIU].wav",skipped,0,0,NaN,NaN,NaN,0,263.104,0.030924,up to date
-53,"holdout/american/OneRepublic - Counting Stars [hT_nvWreIhg].wav",skipped,0,0,NaN,NaN,NaN,0,283.03975,0.0335656,up to date
-54,"holdout/american/P!nk - Just Give Me A Reason ft. Nate Ruess [OpQFFLBMEPI].wav",skipped,0,0,NaN,NaN,NaN,0,242.496,0.0285557,up to date
-55,"holdout/american/Panic! At The Disco - High Hopes (Official Video) [IPXIgEAGe4U].wav",skipped,0,0,NaN,NaN,NaN,0,196.498875,0.0275557,up to date
-56,"holdout/american/Post Malone - Circles [wXhTHyIgQ_U].wav",skipped,0,0,NaN,NaN,NaN,0,226.313375,0.0287799,up to date
-57,"holdout/american/Rachel Platten - Fight Song (Official Video) [xo1VInw-SKc].wav",skipped,0,0,NaN,NaN,NaN,0,205.09025,0.026713,up to date
-58,"holdout/american/Sabrina Carpenter - Espresso [eVli-tstM5E].wav",skipped,0,0,NaN,NaN,NaN,0,200.53925,0.0275623,up to date
-59,"holdout/american/Taylor Swift - Blank Space [e-ORhEE9VVg].wav",skipped,0,0,NaN,NaN,NaN,0,272.428125,0.0315413,up to date
-60,"holdout/american/twenty one pilots - Stressed Out [OFFICIAL VIDEO] [pXRviuL6vMY].wav",skipped,0,0,NaN,NaN,NaN,0,225.233625,0.0291715,up to date
-61,"holdout/opm/018 - Amiel Sol - Sa Bawat Sandali (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,304.63425,0.0356465,up to date
-62,"holdout/opm/023 - Over October - Ikot (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,254.049625,0.0340831,up to date
-63,"holdout/opm/028 - Darin feat. Eloise - Falling In love (Music Video).wav",skipped,0,0,NaN,NaN,NaN,0,120.801875,0.021583,up to date
-64,"holdout/opm/030 - Rob Deniel - Miss Miss.wav",skipped,0,0,NaN,NaN,NaN,0,266.3445,0.0342063,up to date
-65,"holdout/opm/036 - SUGARCANE - Leonora (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,234.4055,0.0279417,up to date
-66,"holdout/opm/053 - O SIDE MAFIA - MY THANG (Go Getta II) (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,198.21725,0.0256171,up to date
-67,"holdout/opm/068 - TJ Monterde - DARATING DIN｜ OFFICIAL LYRIC VIDEO.wav",skipped,0,0,NaN,NaN,NaN,0,240.791,0.0294086,up to date
-68,"holdout/opm/069 - Rob Deniel - Arrowmance -  (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,317.376,0.0350262,up to date
-69,"holdout/opm/080 - Maki - Kailan (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,253.6665,0.0303577,up to date
-70,"holdout/opm/089 - IV Of Spades - Mundo [Lyrics].wav",skipped,0,0,NaN,NaN,NaN,0,349.808625,0.0370747,up to date
-71,"opm/003 - Skusta Clee - Since Day One (Lyrics) Ft. Flow G.wav",skipped,0,0,NaN,NaN,NaN,0,195.047625,0.0182969,up to date
-72,"opm/007 - Soapdish - Tensionado  (Official Lyric Visuals).wav",skipped,0,0,NaN,NaN,NaN,0,210.872125,0.0201003,up to date
-73,"opm/008 - Le John - Naiilang (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,247.106875,0.0223568,up to date
-74,"opm/009 - IV Of Spades - Mundo (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,349.8435,0.0299737,up to date
-75,"opm/014 - Cean Jr. - YK (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,170.469375,0.0161727,up to date
-76,"opm/015 - Because - BMW (Ft. leslie) Lyrics.wav",skipped,0,0,NaN,NaN,NaN,0,166.76575,0.0157407,up to date
-77,"opm/017 - HELLMERRY - My Day (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,185.144375,0.0175845,up to date
-78,"opm/019 - jasondhakal - Para Sa Akin (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,195.512125,0.0179391,up to date
-79,"opm/020 - Dionela - Marilag (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,157.83775,0.0152286,up to date
-80,"opm/022 - Dionela - sining (Lyrics) ft. Jay R.wav",skipped,0,0,NaN,NaN,NaN,0,200.04,0.0182293,up to date
-81,"opm/026 - BINI - Blink Twice_ Official Lyric Video.wav",skipped,0,0,NaN,NaN,NaN,0,157.62875,0.0148122,up to date
-82,"opm/031 - BINI - Cherry On Top Official Lyric Video.wav",skipped,0,0,NaN,NaN,NaN,0,176.05375,0.0172293,up to date
-83,"opm/032 - Ryouji ft. CK YG - b4 i let u go (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,195.26825,0.0187351,up to date
-84,"opm/033 - Rob Deniel - RomCom (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,237.43575,0.020886,up to date
-85,"opm/037 - Ben & Ben - Sa Susunod Na Habang Buhay (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,288.287375,0.0237013,up to date
-86,"opm/039 - ZACK TABUDLO FT. AL JAMES - GUSTO.wav",skipped,0,0,NaN,NaN,NaN,0,258.07825,0.0230304,up to date
-87,"opm/042 - Maki - Namumula (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,175.484875,0.0166544,up to date
-88,"opm/045 - Illest Morena - Faded (Raw)  Lyrics ｜ (kaya ibalot mo na _yang raw).wav",skipped,0,0,NaN,NaN,NaN,0,172.396625,0.0153876,up to date
-89,"opm/046 - TJ Monterde - Palagi (Lyric Video) ｜ @dhorynmarimon.wav",skipped,0,0,NaN,NaN,NaN,0,220.578,0.0206157,up to date
-90,"opm/047 - Hev Abi - Makasarili Malambing (Lyrics) Kristina Dawn ＂ maintindihan mo sanang _di pa _ko handa＂.wav",skipped,0,0,NaN,NaN,NaN,0,125.608375,0.0120349,up to date
-91,"opm/048 - Jed Baruelo - Nahuhulog (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,227.2305,0.0198436,up to date
-92,"opm/050 - Dionela - Oksihina (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,204.045375,0.0180629,up to date
-93,"opm/051 - SUGARCANE - Paalam, Leonora (Official Lyric Visualizer).wav",skipped,0,0,NaN,NaN,NaN,0,263.2215,0.0230894,up to date
-94,"opm/054 - O Side Mafia - Get Low (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,154.67975,0.0144683,up to date
-95,"opm/060 - Hev Abi - Para Sa Streets (Official Lyric Video) (Prod. Noane).wav",skipped,0,0,NaN,NaN,NaN,0,194.571625,0.0182649,up to date
-96,"opm/062 - Shanti Dope - Bad Type (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,186.595625,0.0170684,up to date
-97,"opm/063 - MATEO - Lalim (Official Lyric Video with Chords).wav",skipped,0,0,NaN,NaN,NaN,0,199.900625,0.0182468,up to date
-98,"opm/065 - Jan Roberts - Hirap Kalimutan (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,185.81775,0.0164026,up to date
-99,"opm/066 - Cup of Joe - Misteryoso  (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,237.377625,0.0199855,up to date
-100,"opm/067 - juan karlos - Through the Years (From ＂Lolo and the Kid＂) Official Audio.wav",skipped,0,0,NaN,NaN,NaN,0,241.417875,0.0231323,up to date
-101,"opm/071 - James Reid - Sandal (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,226.46425,0.0198542,up to date
-102,"opm/072 - Dilaw - Yiee (Official Music Video and Lyric Visualizer).wav",skipped,0,0,NaN,NaN,NaN,0,233.8715,0.0201243,up to date
-103,"opm/074 - Moonstar88 - Migraine (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,279.684375,0.0239347,up to date
-104,"opm/076 - BINI - Karera (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,287.497875,0.0248994,up to date
-105,"opm/077 - December Avenue - Huling Sandali (Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,341.646875,0.0304314,up to date
-106,"opm/078 - Hev Abi - Sumugal feat. Unotheone, LK.wav",skipped,0,0,NaN,NaN,NaN,0,182.1025,0.0167044,up to date
-107,"opm/082 - Nateman - IMMA FLIRT ft. Lucky (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,198.867375,0.0187738,up to date
-108,"opm/083 - Parokya ni Edgar - Gitara (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,243.809625,0.0231537,up to date
-109,"opm/084 - Hev Abi - Alam Mo Ba Girl (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,222.017625,0.0208036,up to date
-110,"opm/085 - YB Neet - ILY ft. Bugoy Na Koykoy (Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,179.049125,0.0163568,up to date
-111,"opm/086 - Al James - Pa-Umaga (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,189.09175,0.0195777,up to date
-112,"opm/087 - BINI - ‘First Luv’ Official Music Video.wav",skipped,0,0,NaN,NaN,NaN,0,211.719625,0.020012,up to date
-113,"opm/091 - Up Dharma Down - Oo (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,247.373875,0.0214705,up to date
-114,"opm/092 - rhodessa - Kisame (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,244.053375,0.0210179,up to date
-115,"opm/093 - Hale - Kung Wala Ka (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,239.676375,0.0205462,up to date
-116,"opm/095 - Ben&Ben - Lifetime (Reimagined).wav",skipped,0,0,NaN,NaN,NaN,0,277.861625,0.0244461,up to date
-117,"opm/096 - SB19 - DAM_ Music Video.wav",skipped,0,0,NaN,NaN,NaN,0,301.511125,0.0250609,up to date
-118,"opm/097 - Maki - Kahel na Langit (Official Music Video).wav",skipped,0,0,NaN,NaN,NaN,0,237.633125,0.0200099,up to date
-119,"opm/098 - BINI - Sweet Tooth’ Official Music Video.wav",skipped,0,0,NaN,NaN,NaN,0,187.234125,0.016579,up to date
-120,"opm/100 - Skusta Clee - Kalimutan Ka (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,321.074,0.0276792,up to date
+1,"american/4 Non Blondes - What_s Up (Official Music Video) [6NXnxTNIWkc].wav",skipped,0,0,NaN,NaN,NaN,0,292.59475,0.148487,up to date
+2,"american/Ariana Grande - Into You (Official Video) [1ekZEVeXwek].wav",skipped,0,0,NaN,NaN,NaN,0,254.8275,0.0256175,up to date
+3,"american/Ariana Grande - One Last Time (Official Lyric Video) [Wg92RrNhB8s].wav",skipped,0,0,NaN,NaN,NaN,0,198.890625,0.0234496,up to date
+4,"american/Ava Max - Kings & Queens [Official Music Video] [jH1RNk8954Q].wav",skipped,0,0,NaN,NaN,NaN,0,162.388875,0.0174571,up to date
+5,"american/Ava Max - Sweet but Psycho [Official Music Video] [WXBHCQYxwr0].wav",skipped,0,0,NaN,NaN,NaN,0,207.1685,0.0208082,up to date
+6,"american/Backstreet Boys - I Want It That Way (Official HD Video) [4fndeDfaWCg].wav",skipped,0,0,NaN,NaN,NaN,0,219.266125,0.0217707,up to date
+7,"american/Bebe Rexha - Meant to Be (feat. Florida Georgia Line) [Official Music Video] [zDo0H8Fm7d0].wav",skipped,0,0,NaN,NaN,NaN,0,177.934625,0.0198379,up to date
+8,"american/Bill Withers - Ain_t No Sunshine (Official Audio) [YuKfiH0Scao].wav",skipped,0,0,NaN,NaN,NaN,0,126.4,0.016428,up to date
+9,"american/Billie Eilish, Khalid - lovely [V1Pl8CzNzCw].wav",skipped,0,0,NaN,NaN,NaN,0,200.469375,0.026747,up to date
+10,"american/Blackstreet - No Diggity (Official Music Video) ft. Dr. Dre, Queen Pen [3KL9mRus19o].wav",skipped,0,0,NaN,NaN,NaN,0,270.47775,0.0260798,up to date
+11,"american/Bruno Mars - When I Was Your Man (Official Music Video) [ekzHIouo8Q4].wav",skipped,0,0,NaN,NaN,NaN,0,234.068875,0.0259351,up to date
+12,"american/Charlie Puth - We Don_t Talk Anymore (feat. Selena Gomez) [Official Video] [3AtDnEC4zak].wav",skipped,0,0,NaN,NaN,NaN,0,230.4465,0.0261202,up to date
+13,"american/Destiny_s Child - Say My Name (Official Video) [sQgd6MccwZc].wav",skipped,0,0,NaN,NaN,NaN,0,239.44425,0.021307,up to date
+14,"american/Djo - End Of Beginning (Official Audio) [xy3AcmW0lrQ].wav",skipped,0,0,NaN,NaN,NaN,0,159.3005,0.0140241,up to date
+15,"american/Doja Cat - Kiss Me More (Official Video) ft. SZA [0EVVKs6DQLo].wav",skipped,0,0,NaN,NaN,NaN,0,315.524375,0.0252631,up to date
+16,"american/Goo Goo Dolls - Iris [Official Music Video] [4K Remaster] [NdYWuo9OFAw].wav",skipped,0,0,NaN,NaN,NaN,0,215.550875,0.0183151,up to date
+17,"american/H.E.R. - Best Part (Lyrics) Ft. Daniel Caesar [75-Com9Bo_s].wav",skipped,0,0,NaN,NaN,NaN,0,209.455625,0.017023,up to date
+18,"american/Hailee Steinfeld - Love Myself (Official Video) [bMpFmHSgC4Q].wav",skipped,0,0,NaN,NaN,NaN,0,240.106,0.0196462,up to date
+19,"american/Imagine Dragons - Next To Me (Audio) [-C_rvt0SwLE].wav",skipped,0,0,NaN,NaN,NaN,0,229.7035,0.0190663,up to date
+20,"american/Imagine Dragons - Thunder [fKopy74weus].wav",skipped,0,0,NaN,NaN,NaN,0,203.97575,0.0183982,up to date
+21,"american/Jason Mraz - I_m Yours (Official Video) [7gO-jFLIgdk].wav",skipped,0,0,NaN,NaN,NaN,0,220.97275,0.0186602,up to date
+22,"american/Jeremy Zucker - comethru (Official Video) [jO2viLEW-1A].wav",skipped,0,0,NaN,NaN,NaN,0,180.65075,0.0152207,up to date
+23,"american/Justin Timberlake - CAN_T STOP THE FEELING! (from DreamWorks Animation_s ＂TROLLS＂) (Official Video) [ru0K8uYEZWw].wav",skipped,0,0,NaN,NaN,NaN,0,285.83775,0.0224455,up to date
+24,"american/Katy Perry - Firework (Official Music Video) [QGJuMBdaqIw].wav",skipped,0,0,NaN,NaN,NaN,0,233.2445,0.0195846,up to date
+25,"american/Kelly Clarkson - Since U Been Gone (Official Video) [R7UrFYvl5TE].wav",skipped,0,0,NaN,NaN,NaN,0,191.820125,0.0165719,up to date
+26,"american/Khalid - Young Dumb & Broke (Official Video) [IPfJnp1guPc].wav",skipped,0,0,NaN,NaN,NaN,0,247.04875,0.0193939,up to date
+27,"american/Lauryn Hill - Nothing Even Matters feat. D_Angelo [5aDIqM0n0Eg].wav",skipped,0,0,NaN,NaN,NaN,0,350.540125,0.0281818,up to date
+28,"american/Linkin Park - In The End [Official HD Music Video] [eVTXPUF4Oz4].wav",skipped,0,0,NaN,NaN,NaN,0,218.22125,0.0188768,up to date
+29,"american/Lizzo - Good As Hell (Video) [SmbmeOgWsqE].wav",skipped,0,0,NaN,NaN,NaN,0,165.906625,0.0151195,up to date
+30,"american/Maroon 5 - Girls Like You ft. Cardi B (Official Music Video) [aJOTlE1K90k].wav",skipped,0,0,NaN,NaN,NaN,0,270.784,0.0230292,up to date
+31,"american/Marshmello - Alone (Official Music Video) [ALZHF5UqnU4].wav",skipped,0,0,NaN,NaN,NaN,0,199.4595,0.017145,up to date
+32,"american/Meghan Trainor - All About That Bass (Official Video) [7PCkvCPvDXk].wav",skipped,0,0,NaN,NaN,NaN,0,189.9045,0.0180399,up to date
+33,"american/Olivia Rodrigo - drivers license (Official Video) [ZmDBbnmKpqQ].wav",skipped,0,0,NaN,NaN,NaN,0,247.014,0.0206905,up to date
+34,"american/Pitbull, Ke$ha - Timber (featuring Ke$ha - Official Video) [hHUbLv4ThOo].wav",skipped,0,0,NaN,NaN,NaN,0,214.03,0.0186787,up to date
+35,"american/Post Malone, Swae Lee - Sunflower (Spider-Man： Into the Spider-Verse) [ApXoWvfEYVU].wav",skipped,0,0,NaN,NaN,NaN,0,161.669,0.0138006,up to date
+36,"american/Prince - Adore (2020 Remaster) [uIgQ-tI3pbU].wav",skipped,0,0,NaN,NaN,NaN,0,394.8645,0.0308043,up to date
+37,"american/Sade - Kiss Of Life - Official - 1993 [MmOau-PMWJk].wav",skipped,0,0,NaN,NaN,NaN,0,251.4025,0.0212893,up to date
+38,"american/Selena Gomez - Back To You [VY1eFxgRR-k].wav",skipped,0,0,NaN,NaN,NaN,0,267.37075,0.0230361,up to date
+39,"american/Selena Gomez - Lose You To Love Me (Official Music Video) [zlJDTxahav0].wav",skipped,0,0,NaN,NaN,NaN,0,206.92475,0.0169872,up to date
+40,"american/Solange - Cranes in the Sky (Official Video) [S0qrinhNnOM].wav",skipped,0,0,NaN,NaN,NaN,0,272.23075,0.0220466,up to date
+41,"american/Steve Wonder - Superstition [ftdZ363R9kQ].wav",skipped,0,0,NaN,NaN,NaN,0,266.133375,0.0216489,up to date
+42,"american/Taylor Swift - Shake It Off [nfWlot6h_JM].wav",skipped,0,0,NaN,NaN,NaN,0,241.592125,0.0199561,up to date
+43,"american/Taylor Swift - cardigan [K-a8s8OLBSE].wav",skipped,0,0,NaN,NaN,NaN,0,274.529625,0.0230842,up to date
+44,"american/The Chainsmokers - Closer (Official Video) ft. Halsey [0zGcUoRlhmw].wav",skipped,0,0,NaN,NaN,NaN,0,246.921,0.0203884,up to date
+45,"american/The Chainsmokers - Don_t Let Me Down (Official Video) ft. Daya [Io0fBr1XBUA].wav",skipped,0,0,NaN,NaN,NaN,0,217.849625,0.0178254,up to date
+46,"american/Train - Hey, Soul Sister (Official Video) [kVpv8-5XWOI].wav",skipped,0,0,NaN,NaN,NaN,0,217.43175,0.0177124,up to date
+47,"american/Wiz Khalifa - See You Again ft. Charlie Puth [Official Video] Furious 7 Soundtrack [RgKAFK5djSk].wav",skipped,0,0,NaN,NaN,NaN,0,237.366,0.0193983,up to date
+48,"american/benny blanco, Halsey & Khalid - Eastside (official video) [56WBK4ZK_cw].wav",skipped,0,0,NaN,NaN,NaN,0,174.010375,0.0139796,up to date
+49,"american/twenty one pilots - Heathens (from Suicide Squad： The Album) [OFFICIAL VIDEO] [UprcpdwuwCg].wav",skipped,0,0,NaN,NaN,NaN,0,217.89875,0.0173261,up to date
+50,"american/twenty one pilots - Ride (Official Video) [Pw-0pbY9JeU].wav",skipped,0,0,NaN,NaN,NaN,0,225.2685,0.0184393,up to date
+51,"holdout/american/Ariana Grande - no tears left to cry (Official Video) [ffxKSjUwKdU].wav",skipped,0,0,NaN,NaN,NaN,0,238.1555,0.0193024,up to date
+52,"holdout/american/D_Angelo - Untitled (How Does It Feel) (Official Music Video) [SxVNOnPyvIU].wav",skipped,0,0,NaN,NaN,NaN,0,263.104,0.0215486,up to date
+53,"holdout/american/OneRepublic - Counting Stars [hT_nvWreIhg].wav",skipped,0,0,NaN,NaN,NaN,0,283.03975,0.0226392,up to date
+54,"holdout/american/P!nk - Just Give Me A Reason ft. Nate Ruess [OpQFFLBMEPI].wav",skipped,0,0,NaN,NaN,NaN,0,242.496,0.0189289,up to date
+55,"holdout/american/Panic! At The Disco - High Hopes (Official Video) [IPXIgEAGe4U].wav",skipped,0,0,NaN,NaN,NaN,0,196.498875,0.0158448,up to date
+56,"holdout/american/Post Malone - Circles [wXhTHyIgQ_U].wav",skipped,0,0,NaN,NaN,NaN,0,226.313375,0.0182607,up to date
+57,"holdout/american/Rachel Platten - Fight Song (Official Video) [xo1VInw-SKc].wav",skipped,0,0,NaN,NaN,NaN,0,205.09025,0.0167067,up to date
+58,"holdout/american/Sabrina Carpenter - Espresso [eVli-tstM5E].wav",skipped,0,0,NaN,NaN,NaN,0,200.53925,0.017846,up to date
+59,"holdout/american/Taylor Swift - Blank Space [e-ORhEE9VVg].wav",skipped,0,0,NaN,NaN,NaN,0,272.428125,0.0213728,up to date
+60,"holdout/american/twenty one pilots - Stressed Out [OFFICIAL VIDEO] [pXRviuL6vMY].wav",skipped,0,0,NaN,NaN,NaN,0,225.233625,0.0178734,up to date
+61,"holdout/opm/018 - Amiel Sol - Sa Bawat Sandali (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,304.63425,0.0249173,up to date
+62,"holdout/opm/023 - Over October - Ikot (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,254.049625,0.0243444,up to date
+63,"holdout/opm/028 - Darin feat. Eloise - Falling In love (Music Video).wav",skipped,0,0,NaN,NaN,NaN,0,120.801875,0.0122431,up to date
+64,"holdout/opm/030 - Rob Deniel - Miss Miss.wav",skipped,0,0,NaN,NaN,NaN,0,266.3445,0.0251579,up to date
+65,"holdout/opm/036 - SUGARCANE - Leonora (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,234.4055,0.0205987,up to date
+66,"holdout/opm/053 - O SIDE MAFIA - MY THANG (Go Getta II) (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,198.21725,0.0193224,up to date
+67,"holdout/opm/068 - TJ Monterde - DARATING DIN｜ OFFICIAL LYRIC VIDEO.wav",skipped,0,0,NaN,NaN,NaN,0,240.791,0.0202896,up to date
+68,"holdout/opm/069 - Rob Deniel - Arrowmance -  (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,317.376,0.0281832,up to date
+69,"holdout/opm/080 - Maki - Kailan (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,253.6665,0.0211443,up to date
+71,"opm/003 - Skusta Clee - Since Day One (Lyrics) Ft. Flow G.wav",skipped,0,0,NaN,NaN,NaN,0,195.047625,0.0169565,up to date
+72,"opm/007 - Soapdish - Tensionado  (Official Lyric Visuals).wav",skipped,0,0,NaN,NaN,NaN,0,210.872125,0.0189269,up to date
+73,"opm/008 - Le John - Naiilang (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,247.106875,0.0205463,up to date
+74,"opm/009 - IV Of Spades - Mundo (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,349.8435,0.0282189,up to date
+75,"opm/014 - Cean Jr. - YK (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,170.469375,0.0148227,up to date
+76,"opm/015 - Because - BMW (Ft. leslie) Lyrics.wav",skipped,0,0,NaN,NaN,NaN,0,166.76575,0.0146162,up to date
+77,"opm/017 - HELLMERRY - My Day (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,185.144375,0.0161825,up to date
+78,"opm/019 - jasondhakal - Para Sa Akin (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,195.512125,0.0164277,up to date
+79,"opm/020 - Dionela - Marilag (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,157.83775,0.0137691,up to date
+80,"opm/022 - Dionela - sining (Lyrics) ft. Jay R.wav",skipped,0,0,NaN,NaN,NaN,0,200.04,0.0165114,up to date
+81,"opm/026 - BINI - Blink Twice_ Official Lyric Video.wav",skipped,0,0,NaN,NaN,NaN,0,157.62875,0.015031,up to date
+82,"opm/031 - BINI - Cherry On Top Official Lyric Video.wav",skipped,0,0,NaN,NaN,NaN,0,176.05375,0.0167647,up to date
+83,"opm/032 - Ryouji ft. CK YG - b4 i let u go (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,195.26825,0.0166305,up to date
+84,"opm/033 - Rob Deniel - RomCom (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,237.43575,0.0198595,up to date
+85,"opm/037 - Ben & Ben - Sa Susunod Na Habang Buhay (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,288.287375,0.0237632,up to date
+86,"opm/039 - ZACK TABUDLO FT. AL JAMES - GUSTO.wav",skipped,0,0,NaN,NaN,NaN,0,258.07825,0.0216236,up to date
+87,"opm/042 - Maki - Namumula (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,175.484875,0.0151347,up to date
+88,"opm/045 - Illest Morena - Faded (Raw)  Lyrics ｜ (kaya ibalot mo na _yang raw).wav",skipped,0,0,NaN,NaN,NaN,0,172.396625,0.0143733,up to date
+89,"opm/046 - TJ Monterde - Palagi (Lyric Video) ｜ @dhorynmarimon.wav",skipped,0,0,NaN,NaN,NaN,0,220.578,0.0187143,up to date
+90,"opm/047 - Hev Abi - Makasarili Malambing (Lyrics) Kristina Dawn ＂ maintindihan mo sanang _di pa _ko handa＂.wav",skipped,0,0,NaN,NaN,NaN,0,125.608375,0.0122869,up to date
+91,"opm/048 - Jed Baruelo - Nahuhulog (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,227.2305,0.0192128,up to date
+92,"opm/050 - Dionela - Oksihina (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,204.045375,0.0173141,up to date
+93,"opm/051 - SUGARCANE - Paalam, Leonora (Official Lyric Visualizer).wav",skipped,0,0,NaN,NaN,NaN,0,263.2215,0.0218651,up to date
+94,"opm/054 - O Side Mafia - Get Low (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,154.67975,0.0144843,up to date
+95,"opm/060 - Hev Abi - Para Sa Streets (Official Lyric Video) (Prod. Noane).wav",skipped,0,0,NaN,NaN,NaN,0,194.571625,0.0159353,up to date
+96,"opm/062 - Shanti Dope - Bad Type (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,186.595625,0.017882,up to date
+97,"opm/063 - MATEO - Lalim (Official Lyric Video with Chords).wav",skipped,0,0,NaN,NaN,NaN,0,199.900625,0.0171635,up to date
+98,"opm/065 - Jan Roberts - Hirap Kalimutan (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,185.81775,0.0166194,up to date
+99,"opm/066 - Cup of Joe - Misteryoso  (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,237.377625,0.019736,up to date
+100,"opm/067 - juan karlos - Through the Years (From ＂Lolo and the Kid＂) Official Audio.wav",skipped,0,0,NaN,NaN,NaN,0,241.417875,0.0218381,up to date
+101,"opm/071 - James Reid - Sandal (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,226.46425,0.0191992,up to date
+102,"opm/072 - Dilaw - Yiee (Official Music Video and Lyric Visualizer).wav",skipped,0,0,NaN,NaN,NaN,0,233.8715,0.0195643,up to date
+103,"opm/074 - Moonstar88 - Migraine (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,279.684375,0.0240496,up to date
+104,"opm/076 - BINI - Karera (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,287.497875,0.0246769,up to date
+105,"opm/077 - December Avenue - Huling Sandali (Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,341.646875,0.027417,up to date
+106,"opm/078 - Hev Abi - Sumugal feat. Unotheone, LK.wav",skipped,0,0,NaN,NaN,NaN,0,182.1025,0.0163197,up to date
+107,"opm/082 - Nateman - IMMA FLIRT ft. Lucky (Official Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,198.867375,0.0181569,up to date
+108,"opm/083 - Parokya ni Edgar - Gitara (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,243.809625,0.0205209,up to date
+109,"opm/084 - Hev Abi - Alam Mo Ba Girl (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,222.017625,0.018516,up to date
+110,"opm/085 - YB Neet - ILY ft. Bugoy Na Koykoy (Lyric Video).wav",skipped,0,0,NaN,NaN,NaN,0,179.049125,0.0147498,up to date
+111,"opm/086 - Al James - Pa-Umaga (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,189.09175,0.016958,up to date
+112,"opm/087 - BINI - ‘First Luv’ Official Music Video.wav",skipped,0,0,NaN,NaN,NaN,0,211.719625,0.01796,up to date
+113,"opm/091 - Up Dharma Down - Oo (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,247.373875,0.0202725,up to date
+114,"opm/092 - rhodessa - Kisame (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,244.053375,0.0199401,up to date
+115,"opm/093 - Hale - Kung Wala Ka (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,239.676375,0.0189791,up to date
+116,"opm/095 - Ben&Ben - Lifetime (Reimagined).wav",skipped,0,0,NaN,NaN,NaN,0,277.861625,0.023177,up to date
+117,"opm/096 - SB19 - DAM_ Music Video.wav",skipped,0,0,NaN,NaN,NaN,0,301.511125,0.0235207,up to date
+118,"opm/097 - Maki - Kahel na Langit (Official Music Video).wav",skipped,0,0,NaN,NaN,NaN,0,237.633125,0.0196864,up to date
+119,"opm/098 - BINI - Sweet Tooth’ Official Music Video.wav",skipped,0,0,NaN,NaN,NaN,0,187.234125,0.015793,up to date
+120,"opm/100 - Skusta Clee - Kalimutan Ka (Lyrics).wav",skipped,0,0,NaN,NaN,NaN,0,321.074,0.0263417,up to date
+121,"holdout/opm/Angela_Ken - Baka Bukas.wav",processed,48000,2,-14.2053278602389,-5.79467213976114,0.507253057935856,0,212.52275,0.6633678,48000 Hz/2ch -> 8 kHz mono
